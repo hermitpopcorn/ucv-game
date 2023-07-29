@@ -9,7 +9,7 @@ use crate::{
 	postmaster::types::{InternalMessage, InternalMessageAction, ResponseIdentifier},
 };
 
-use super::types::{Client, ClientsMap, Player};
+use super::types::{Client, ClientType, ClientsMap, Player};
 
 pub async fn start_gamemaster(
 	gm_channel_receiver: Receiver<InternalMessage>,
@@ -85,7 +85,9 @@ fn register_client(
 		address.clone(),
 		Client {
 			individual_channel_sender,
+			client_type: ClientType::Blank,
 			player: None,
+			organizer: None,
 		},
 	);
 
@@ -146,9 +148,10 @@ fn register_active_player(
 		}
 	}
 
-	clients
-		.entry(address)
-		.and_modify(|c| c.player = Some(player.clone()));
+	clients.entry(address).and_modify(|c| {
+		c.client_type = ClientType::Player;
+		c.player = Some(player.clone());
+	});
 	debug!("Connected players updated");
 
 	let ics = get_individual_channel_sender(&clients, &address);
