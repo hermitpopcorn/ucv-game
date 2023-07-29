@@ -100,7 +100,7 @@ impl Serialize for GameState {
 struct JsonMessage {
 	response_id: ResponseIdentifier,
 	action: String,
-	payload: String,
+	payload: Option<String>,
 }
 
 pub fn parse_message(message: String) -> Option<WebSocketMessage> {
@@ -114,13 +114,13 @@ pub fn parse_message(message: String) -> Option<WebSocketMessage> {
 		"login-player" => {
 			return Some(WebSocketMessage {
 				response_id: json.response_id,
-				action: WebSocketMessageAction::LoginPlayer(json.payload),
+				action: WebSocketMessageAction::LoginPlayer(json.payload.unwrap()),
 			})
 		}
 		"login-organizer" => {
 			return Some(WebSocketMessage {
 				response_id: json.response_id,
-				action: WebSocketMessageAction::LoginOrganizer(json.payload),
+				action: WebSocketMessageAction::LoginOrganizer(json.payload.unwrap()),
 			})
 		}
 		"get-game-state" => {
