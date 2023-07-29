@@ -160,7 +160,8 @@ fn log_in_player(
 	name: String,
 ) {
 	let internal_message = InternalMessage {
-		payload: InternalMessageAction::RegisterActivePlayer(address, response_id, name),
+		payload: InternalMessageAction::RegisterActivePlayer(address, name),
+		response_id,
 		..Default::default()
 	};
 	sender
@@ -175,7 +176,8 @@ fn log_in_organizer(
 	password: String,
 ) {
 	let internal_message = InternalMessage {
-		payload: InternalMessageAction::RegisterOrganizer(address, response_id, password),
+		payload: InternalMessageAction::RegisterOrganizer(address, password),
+		response_id,
 		..Default::default()
 	};
 	sender
@@ -199,7 +201,8 @@ fn retrieve_game_state(
 	response_id: ResponseIdentifier,
 ) {
 	let internal_message = InternalMessage {
-		payload: InternalMessageAction::RetrieveGameState(address, response_id),
+		payload: InternalMessageAction::RetrieveGameState(address),
+		response_id,
 		..Default::default()
 	};
 

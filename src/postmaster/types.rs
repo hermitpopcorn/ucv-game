@@ -20,11 +20,11 @@ pub enum InternalMessageAction {
 	// From Client to GM
 	ExitClient(SocketAddr),
 	RegisterClient(SocketAddr, Sender<InternalMessage>),
-	RegisterActivePlayer(SocketAddr, ResponseIdentifier, String),
+	RegisterActivePlayer(SocketAddr, String),
 	RetrieveActivePlayers(SocketAddr),
-	RetrieveGameState(SocketAddr, ResponseIdentifier),
+	RetrieveGameState(SocketAddr),
 
-	RegisterOrganizer(SocketAddr, ResponseIdentifier, String),
+	RegisterOrganizer(SocketAddr, String),
 }
 
 #[derive(Debug, Clone)]

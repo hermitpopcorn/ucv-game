@@ -31,11 +31,22 @@ pub async fn start_gamemaster(
 			InternalMessageAction::RegisterClient(address, individual_channel_sender) => {
 				register_client(&mut clients, address, individual_channel_sender);
 			}
-			InternalMessageAction::RegisterActivePlayer(address, response_id, name) => {
-				register_active_player(&database, &mut clients, address, response_id, name);
+			InternalMessageAction::RegisterActivePlayer(address, name) => {
+				register_active_player(
+					&database,
+					&mut clients,
+					address,
+					received_message.response_id,
+					name,
+				);
 			}
-			InternalMessageAction::RegisterOrganizer(address, response_id, password) => {
-				register_organizer(&mut clients, address, response_id, password);
+			InternalMessageAction::RegisterOrganizer(address, password) => {
+				register_organizer(
+					&mut clients,
+					address,
+					received_message.response_id,
+					password,
+				);
 			}
 			InternalMessageAction::RetrieveActivePlayers(address) => {
 				retrieve_active_players(&clients, address);
@@ -43,8 +54,8 @@ pub async fn start_gamemaster(
 			InternalMessageAction::ExitClient(address) => {
 				exit_client(&mut clients, address);
 			}
-			InternalMessageAction::RetrieveGameState(address, response_id) => {
-				retrieve_game_state(&database, &clients, address, response_id);
+			InternalMessageAction::RetrieveGameState(address) => {
+				retrieve_game_state(&database, &clients, address, received_message.response_id);
 			}
 			_ => continue,
 		}
