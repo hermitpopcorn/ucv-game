@@ -15,7 +15,7 @@ use tokio_tungstenite::{
 use super::{
 	json::{
 		make_json_active_players, make_json_not_okay_response, make_json_okay_response,
-		make_json_player_identity_response, parse_message,
+		make_json_organizer_identity_response, make_json_player_identity_response, parse_message,
 	},
 	types::{
 		InternalMessage, InternalMessageAction, ResponseIdentifier, WebSocketMessage,
@@ -113,6 +113,9 @@ fn handle_message(gmcs: &Sender<InternalMessage>, address: SocketAddr, message: 
 		WebSocketMessageAction::LoginPlayer(name) => {
 			log_in_player(gmcs, address, message.response_id, name)
 		}
+		WebSocketMessageAction::LoginOrganizer(password) => {
+			log_in_organizer(gmcs, address, message.response_id, password)
+		}
 	};
 }
 
@@ -129,6 +132,9 @@ async fn forward_message(
 		}
 		InternalMessageAction::ResponsePlayerIdentity(player) => {
 			make_json_player_identity_response(internal_message.response_id, player)
+		}
+		InternalMessageAction::ResponseOrganizerIdentity(organizer) => {
+			make_json_organizer_identity_response(internal_message.response_id, organizer)
 		}
 		InternalMessageAction::ResponseActivePlayers(active_players) => {
 			make_json_active_players(internal_message.response_id, active_players)
@@ -152,6 +158,21 @@ fn log_in_player(
 	sender
 		.send(internal_message)
 		.expect("Could not send request to GM for logging in player");
+}
+
+fn log_in_organizer(
+	sender: &Sender<InternalMessage>,
+	address: SocketAddr,
+	response_id: ResponseIdentifier,
+	password: String,
+) {
+	let internal_message = InternalMessage {
+		payload: InternalMessageAction::RegisterOrganizer(address, response_id, password),
+		..Default::default()
+	};
+	sender
+		.send(internal_message)
+		.expect("Could not send request to GM for logging in organizer");
 }
 
 fn exit_client(sender: &Sender<InternalMessage>, address: SocketAddr) {

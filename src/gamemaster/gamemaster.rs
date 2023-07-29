@@ -9,7 +9,7 @@ use crate::{
 	postmaster::types::{InternalMessage, InternalMessageAction, ResponseIdentifier},
 };
 
-use super::types::{Client, ClientType, ClientsMap, Player};
+use super::types::{Client, ClientType, ClientsMap, Organizer, Player};
 
 pub async fn start_gamemaster(
 	gm_channel_receiver: Receiver<InternalMessage>,
@@ -31,6 +31,9 @@ pub async fn start_gamemaster(
 			}
 			InternalMessageAction::RegisterActivePlayer(address, response_id, name) => {
 				register_active_player(&database, &mut clients, address, response_id, name);
+			}
+			InternalMessageAction::RegisterOrganizer(address, response_id, password) => {
+				register_organizer(&mut clients, address, response_id, password);
 			}
 			InternalMessageAction::RetrieveActivePlayers(address) => {
 				retrieve_active_players(&clients, address);
@@ -162,7 +165,7 @@ fn register_active_player(
 		..Default::default()
 	})
 	.expect("Could not send identity confirmation response");
-	debug!("Response (identity confirmation) sent");
+	debug!("Response (player identity confirmation) sent");
 
 	let players = get_players(&clients);
 	ics.send(InternalMessage {
@@ -171,6 +174,49 @@ fn register_active_player(
 	})
 	.expect("Could not send list of active players as response");
 	debug!("Response (list of connected players) sent");
+}
+
+fn register_organizer(
+	clients: &mut ClientsMap,
+	address: SocketAddr,
+	response_id: ResponseIdentifier,
+	password: String,
+) {
+	debug!("===== Register organizer");
+
+	// Check if organizer key is valid
+	let the_password = "minorityrule"; // TODO do not hardcode this
+	if !password.eq(the_password) {
+		get_individual_channel_sender(&clients, &address)
+			.send(InternalMessage {
+				payload: InternalMessageAction::ResponseNotOkay(
+					"The organizer password is incorrect.".to_owned(),
+				),
+				response_id,
+				..Default::default()
+			})
+			.expect("Could not send NG as response");
+		return;
+	}
+
+	let organizer = Organizer {
+		name: random_word::gen(random_word::Lang::En).to_owned(),
+	};
+
+	clients.entry(address).and_modify(|c| {
+		c.client_type = ClientType::Organizer;
+		c.organizer = Some(organizer.clone());
+	});
+	debug!("Marked client as organizer");
+
+	get_individual_channel_sender(&clients, &address)
+		.send(InternalMessage {
+			payload: InternalMessageAction::ResponseOrganizerIdentity(organizer),
+			response_id: response_id,
+		})
+		.expect("Could not send identity confirmation response");
+
+	debug!("Response (organizer identity confirmation) sent");
 }
 
 fn retrieve_active_players(clients: &ClientsMap, address: SocketAddr) {

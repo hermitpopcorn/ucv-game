@@ -1,7 +1,7 @@
 use serde_derive::Deserialize;
 use serde_json::json;
 
-use crate::gamemaster::types::Player;
+use crate::gamemaster::types::{Organizer, Player};
 
 use super::types::{ResponseIdentifier, WebSocketMessage, WebSocketMessageAction};
 
@@ -11,6 +11,14 @@ impl Into<serde_json::Value> for Player {
 			"id": self.id,
 			"name": self.name,
 			"points": self.points,
+		})
+	}
+}
+
+impl Into<serde_json::Value> for Organizer {
+	fn into(self) -> serde_json::Value {
+		json!({
+			"name": self.name,
 		})
 	}
 }
@@ -37,6 +45,12 @@ pub fn parse_message(message: String) -> Option<WebSocketMessage> {
 				action: WebSocketMessageAction::LoginPlayer(json.payload),
 			})
 		}
+		"organizerLogin" => {
+			return Some(WebSocketMessage {
+				response_id: json.response_id,
+				action: WebSocketMessageAction::LoginOrganizer(json.payload),
+			})
+		}
 		_ => return None,
 	}
 }
@@ -50,6 +64,18 @@ pub fn make_json_player_identity_response(
 		"responseId": response_id,
 		"action": "set-player",
 		"payload": player,
+	})
+}
+
+pub fn make_json_organizer_identity_response(
+	response_id: ResponseIdentifier,
+	organizer: Organizer,
+) -> serde_json::Value {
+	let organizer: serde_json::Value = organizer.into();
+	json!({
+		"responseId": response_id,
+		"action": "set-organizer",
+		"payload": organizer,
 	})
 }
 

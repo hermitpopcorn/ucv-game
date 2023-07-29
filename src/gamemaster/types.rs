@@ -8,6 +8,7 @@ use crate::postmaster::types::InternalMessage;
 pub enum ClientType {
 	Blank,
 	Player,
+	Organizer,
 }
 
 #[derive(Debug, Clone)]
@@ -15,6 +16,7 @@ pub struct Client {
 	pub individual_channel_sender: Sender<InternalMessage>,
 	pub client_type: ClientType,
 	pub player: Option<Player>,
+	pub organizer: Option<Organizer>,
 }
 
 pub type ClientsMap = HashMap<SocketAddr, Client>;
@@ -25,6 +27,11 @@ pub struct Player {
 	pub name: String,
 	pub points: usize,
 	pub can_vote: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct Organizer {
+	pub name: String,
 }
 
 #[derive(Debug, Clone)]
