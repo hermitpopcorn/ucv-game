@@ -1,6 +1,10 @@
+use std::sync::{Arc, Mutex};
+
 use anyhow::Result;
 
-use crate::types::Player;
+use crate::gamemaster::types::Player;
+
+pub type DatabaseAccess = Arc<Mutex<dyn Database>>;
 
 pub trait Database: Send {
 	fn initialize_database(&self) -> Result<()>;

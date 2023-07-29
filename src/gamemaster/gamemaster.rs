@@ -4,13 +4,15 @@ use anyhow::{Ok, Result};
 use crossbeam::channel::{Receiver, Sender};
 use log::{debug, warn};
 
-use crate::types::{
-	ChannelMessage, ChannelMessageAction, Client, ClientsMap, DatabaseAccess, Player,
-	ResponseIdentifier,
+use crate::{
+	database::database::DatabaseAccess,
+	postmaster::types::{InternalMessage, InternalMessageAction, ResponseIdentifier},
 };
 
+use super::types::{Client, ClientsMap, Player};
+
 pub async fn start_gamemaster(
-	gm_channel_receiver: Receiver<ChannelMessage>,
+	gm_channel_receiver: Receiver<InternalMessage>,
 	database: DatabaseAccess,
 ) -> Result<()> {
 	let mut clients: ClientsMap = HashMap::new();
@@ -24,16 +26,16 @@ pub async fn start_gamemaster(
 
 		let received_message = received_message.unwrap();
 		match received_message.payload {
-			ChannelMessageAction::RegisterClient(address, individual_channel_sender) => {
+			InternalMessageAction::RegisterClient(address, individual_channel_sender) => {
 				register_client(&mut clients, address, individual_channel_sender);
 			}
-			ChannelMessageAction::RegisterActivePlayer(address, response_id, name) => {
+			InternalMessageAction::RegisterActivePlayer(address, response_id, name) => {
 				register_active_player(&database, &mut clients, address, response_id, name);
 			}
-			ChannelMessageAction::RetrieveActivePlayers(address) => {
+			InternalMessageAction::RetrieveActivePlayers(address) => {
 				retrieve_active_players(&clients, address);
 			}
-			ChannelMessageAction::ExitClient(address) => {
+			InternalMessageAction::ExitClient(address) => {
 				exit_client(&mut clients, address);
 			}
 			_ => continue,
@@ -46,7 +48,7 @@ pub async fn start_gamemaster(
 fn get_individual_channel_sender<'map_lifetime>(
 	clients_map: &'map_lifetime ClientsMap,
 	address: &SocketAddr,
-) -> &'map_lifetime Sender<ChannelMessage> {
+) -> &'map_lifetime Sender<InternalMessage> {
 	let client = clients_map
 		.get(address)
 		.expect("Could not find the client when searching for individual channel");
@@ -76,7 +78,7 @@ fn get_players(clients_map: &ClientsMap) -> Vec<Player> {
 fn register_client(
 	clients: &mut ClientsMap,
 	address: SocketAddr,
-	individual_channel_sender: Sender<ChannelMessage>,
+	individual_channel_sender: Sender<InternalMessage>,
 ) {
 	debug!("===== Register client");
 	clients.insert(
@@ -92,8 +94,8 @@ fn register_client(
 		.expect("Could not get inserted client");
 	client
 		.individual_channel_sender
-		.send(ChannelMessage {
-			payload: ChannelMessageAction::ResponseOkay,
+		.send(InternalMessage {
+			payload: InternalMessageAction::ResponseOkay,
 			..Default::default()
 		})
 		.expect("Could not send client registration okay response");
@@ -132,8 +134,8 @@ fn register_active_player(
 				.get(&address)
 				.expect("Could not find current client in clients map")
 				.individual_channel_sender
-				.send(ChannelMessage {
-					payload: ChannelMessageAction::ResponseNotOkay(
+				.send(InternalMessage {
+					payload: InternalMessageAction::ResponseNotOkay(
 						"That player is already connected on a different device.".to_owned(),
 					),
 					response_id,
@@ -151,8 +153,8 @@ fn register_active_player(
 
 	let ics = get_individual_channel_sender(&clients, &address);
 
-	ics.send(ChannelMessage {
-		payload: ChannelMessageAction::ResponseIdentity(player),
+	ics.send(InternalMessage {
+		payload: InternalMessageAction::ResponseIdentity(player),
 		response_id,
 		..Default::default()
 	})
@@ -160,8 +162,8 @@ fn register_active_player(
 	debug!("Response (identity confirmation) sent");
 
 	let players = get_players(&clients);
-	ics.send(ChannelMessage {
-		payload: ChannelMessageAction::ResponseActivePlayers(players),
+	ics.send(InternalMessage {
+		payload: InternalMessageAction::ResponseActivePlayers(players),
 		..Default::default()
 	})
 	.expect("Could not send list of active players as response");
@@ -171,8 +173,8 @@ fn register_active_player(
 fn retrieve_active_players(clients: &ClientsMap, address: SocketAddr) {
 	let ics = get_individual_channel_sender(&clients, &address);
 	let players = get_players(&clients);
-	ics.send(ChannelMessage {
-		payload: ChannelMessageAction::ResponseActivePlayers(players),
+	ics.send(InternalMessage {
+		payload: InternalMessageAction::ResponseActivePlayers(players),
 		..Default::default()
 	})
 	.expect("Could not send list of active players");

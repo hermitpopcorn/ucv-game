@@ -11,13 +11,13 @@ use tokio_tungstenite::{
 	},
 };
 
-use crate::{
-	postmaster::json::{
-		make_json_active_players, make_json_alert_message, make_json_identity_response,
-		make_json_not_okay_response, make_json_okay_response, parse_message,
+use super::{
+	json::{
+		make_json_active_players, make_json_identity_response, make_json_not_okay_response,
+		make_json_okay_response, parse_message,
 	},
 	types::{
-		ChannelMessage, ChannelMessageAction, ResponseIdentifier, WebSocketMessage,
+		InternalMessage, InternalMessageAction, ResponseIdentifier, WebSocketMessage,
 		WebSocketMessageAction,
 	},
 };
@@ -25,7 +25,7 @@ use crate::{
 pub async fn accept_connection(
 	peer: SocketAddr,
 	stream: TcpStream,
-	sender: Sender<ChannelMessage>,
+	sender: Sender<InternalMessage>,
 ) {
 	if let Err(e) = handle_connection(peer, stream, sender).await {
 		match e {
@@ -40,18 +40,18 @@ pub async fn accept_connection(
 async fn handle_connection(
 	address: SocketAddr,
 	stream: TcpStream,
-	gm_channel_sender: Sender<ChannelMessage>,
+	gm_channel_sender: Sender<InternalMessage>,
 ) -> TungsteniteResult<()> {
 	let ws_stream = accept_async(stream).await.expect("Failed to accept");
 	info!("New WebSocket connection: {}", address);
 
 	let (mut ws_sender, mut ws_receiver) = ws_stream.split();
 
-	let (individual_channel_sender, individual_channel_receiver) = unbounded::<ChannelMessage>();
+	let (individual_channel_sender, individual_channel_receiver) = unbounded::<InternalMessage>();
 
 	gm_channel_sender
-		.send(ChannelMessage {
-			payload: ChannelMessageAction::RegisterClient(
+		.send(InternalMessage {
+			payload: InternalMessageAction::RegisterClient(
 				address,
 				individual_channel_sender.clone(),
 			),
@@ -64,7 +64,7 @@ async fn handle_connection(
 		.expect("Could not receive client registration response");
 
 	match receive.payload {
-		ChannelMessageAction::ResponseOkay => (),
+		InternalMessageAction::ResponseOkay => (),
 		_ => panic!("Invalid response received from client registration process"),
 	};
 
@@ -94,19 +94,19 @@ async fn handle_connection(
 					continue;
 				}
 
-				let channel_message: ChannelMessage = individual_channel_message.expect("Could not unwrap channel message");
+				let channel_message: InternalMessage = individual_channel_message.expect("Could not unwrap channel message");
 
 				let json: serde_json::Value = match channel_message.payload {
-					ChannelMessageAction::ResponseOkay => {
+					InternalMessageAction::ResponseOkay => {
 						make_json_okay_response(channel_message.response_id)
 					},
-					ChannelMessageAction::ResponseNotOkay(message) => {
+					InternalMessageAction::ResponseNotOkay(message) => {
 						make_json_not_okay_response(channel_message.response_id, message)
 					},
-					ChannelMessageAction::ResponseIdentity(player) => {
+					InternalMessageAction::ResponseIdentity(player) => {
 						make_json_identity_response(channel_message.response_id, player)
 					},
-					ChannelMessageAction::ResponseActivePlayers(active_players) => {
+					InternalMessageAction::ResponseActivePlayers(active_players) => {
 						make_json_active_players(channel_message.response_id, active_players)
 					},
 					_ => continue,
@@ -120,7 +120,7 @@ async fn handle_connection(
 	Ok(())
 }
 
-fn handle_message(gmcs: &Sender<ChannelMessage>, address: SocketAddr, message: WebSocketMessage) {
+fn handle_message(gmcs: &Sender<InternalMessage>, address: SocketAddr, message: WebSocketMessage) {
 	match message.action {
 		WebSocketMessageAction::Login(name) => {
 			log_in_player(gmcs, address, message.response_id, name)
@@ -129,26 +129,26 @@ fn handle_message(gmcs: &Sender<ChannelMessage>, address: SocketAddr, message: W
 }
 
 fn log_in_player(
-	sender: &Sender<ChannelMessage>,
+	sender: &Sender<InternalMessage>,
 	address: SocketAddr,
 	response_id: ResponseIdentifier,
 	name: String,
 ) {
-	let channel_message = ChannelMessage {
-		payload: ChannelMessageAction::RegisterActivePlayer(address, response_id, name),
+	let internal_message = InternalMessage {
+		payload: InternalMessageAction::RegisterActivePlayer(address, response_id, name),
 		..Default::default()
 	};
 	sender
-		.send(channel_message)
-		.expect("Could not send request to GM for list of active players");
+		.send(internal_message)
+		.expect("Could not send request to GM for logging in player");
 }
 
-fn exit_client(sender: &Sender<ChannelMessage>, address: SocketAddr) {
-	let channel_message = ChannelMessage {
-		payload: ChannelMessageAction::ExitClient(address),
+fn exit_client(sender: &Sender<InternalMessage>, address: SocketAddr) {
+	let internal_message = InternalMessage {
+		payload: InternalMessageAction::ExitClient(address),
 		..Default::default()
 	};
 	sender
-		.send(channel_message)
+		.send(internal_message)
 		.expect("Could not send request to GM for goodbye sengen");
 }

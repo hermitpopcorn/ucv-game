@@ -1,7 +1,7 @@
 use anyhow::{bail, Result};
 use rusqlite::{params, Connection, OptionalExtension};
 
-use crate::types::Player;
+use crate::gamemaster::types::Player;
 
 use super::database::Database;
 

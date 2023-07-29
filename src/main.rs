@@ -3,16 +3,14 @@ use std::sync::{Arc, Mutex};
 use crossbeam::channel::unbounded;
 use database::sqlite::SqliteDatabase;
 use env_logger::Env;
-use gamemaster::start_gamemaster;
+use gamemaster::gamemaster::start_gamemaster;
 use log::info;
-use postmaster::postmaster::accept_connection;
+use postmaster::{postmaster::accept_connection, types::InternalMessage};
 use tokio::{net::TcpListener, spawn};
-use types::ChannelMessage;
 
 mod database;
 mod gamemaster;
 mod postmaster;
-mod types;
 
 #[tokio::main]
 async fn main() {
@@ -23,8 +21,11 @@ async fn main() {
 	let database = SqliteDatabase::new("database.db");
 	let database_arc = Arc::new(Mutex::new(database));
 
-	// Create crossbeam channel for communicating with gamemaster
-	let (gm_channel_sender, gm_channel_receiver) = unbounded::<ChannelMessage>();
+	// Create crossbeam channels for communicating with gamemaster
+	// Player <-> GM
+	let (gm_channel_sender, gm_channel_receiver) = unbounded::<InternalMessage>();
+	// Organizer <-> GM
+	let (gm_channel_sender, gm_channel_receiver) = unbounded::<InternalMessage>();
 
 	// Run gamemaster in new thread
 	let _gamemaster_handle = spawn(start_gamemaster(

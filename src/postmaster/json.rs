@@ -1,8 +1,19 @@
-use log::debug;
 use serde_derive::Deserialize;
 use serde_json::json;
 
-use crate::types::{Player, ResponseIdentifier, WebSocketMessage, WebSocketMessageAction};
+use crate::gamemaster::types::Player;
+
+use super::types::{ResponseIdentifier, WebSocketMessage, WebSocketMessageAction};
+
+impl Into<serde_json::Value> for Player {
+	fn into(self) -> serde_json::Value {
+		json!({
+			"id": self.id,
+			"name": self.name,
+			"points": self.points,
+		})
+	}
+}
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
