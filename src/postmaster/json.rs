@@ -8,16 +8,6 @@ use crate::gamemaster::types::{
 
 use super::types::{ResponseIdentifier, WebSocketMessage, WebSocketMessageAction};
 
-impl Into<serde_json::Value> for Player {
-	fn into(self) -> serde_json::Value {
-		json!({
-			"id": self.id,
-			"name": self.name,
-			"points": self.points,
-		})
-	}
-}
-
 impl Serialize for Player {
 	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 	where
@@ -147,7 +137,6 @@ pub fn make_json_player_identity_response(
 	response_id: ResponseIdentifier,
 	player: Player,
 ) -> serde_json::Value {
-	let player: serde_json::Value = player.into();
 	json!({
 		"responseId": response_id,
 		"action": "set-player",
@@ -171,7 +160,6 @@ pub fn make_json_active_players(
 	response_id: ResponseIdentifier,
 	active_players: Vec<Player>,
 ) -> serde_json::Value {
-	let active_players: serde_json::Value = active_players.into();
 	json!({
 		"responseId": response_id,
 		"action": "refresh-active-players-list",
