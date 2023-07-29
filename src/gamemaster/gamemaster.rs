@@ -9,7 +9,7 @@ use crate::{
 	postmaster::types::{InternalMessage, InternalMessageAction, ResponseIdentifier},
 };
 
-use super::types::{Client, ClientType, ClientsMap, Organizer, Player};
+use super::types::{Client, ClientStatus, ClientsMap, Organizer, Player};
 
 pub async fn start_gamemaster(
 	gm_channel_receiver: Receiver<InternalMessage>,
@@ -88,7 +88,7 @@ fn register_client(
 		address.clone(),
 		Client {
 			individual_channel_sender,
-			client_type: ClientType::Blank,
+			status: ClientStatus::Unregistered,
 			player: None,
 			organizer: None,
 		},
@@ -152,7 +152,7 @@ fn register_active_player(
 	}
 
 	clients.entry(address).and_modify(|c| {
-		c.client_type = ClientType::Player;
+		c.status = ClientStatus::Registered;
 		c.player = Some(player.clone());
 	});
 	debug!("Connected players updated");
@@ -204,7 +204,7 @@ fn register_organizer(
 	};
 
 	clients.entry(address).and_modify(|c| {
-		c.client_type = ClientType::Organizer;
+		c.status = ClientStatus::Registered;
 		c.organizer = Some(organizer.clone());
 	});
 	debug!("Marked client as organizer");

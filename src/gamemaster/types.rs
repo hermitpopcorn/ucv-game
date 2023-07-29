@@ -5,16 +5,15 @@ use crossbeam::channel::Sender;
 use crate::postmaster::types::InternalMessage;
 
 #[derive(Debug, Clone)]
-pub enum ClientType {
-	Blank,
-	Player,
-	Organizer,
+pub enum ClientStatus {
+	Unregistered,
+	Registered,
 }
 
 #[derive(Debug, Clone)]
 pub struct Client {
 	pub individual_channel_sender: Sender<InternalMessage>,
-	pub client_type: ClientType,
+	pub status: ClientStatus,
 	pub player: Option<Player>,
 	pub organizer: Option<Organizer>,
 }
