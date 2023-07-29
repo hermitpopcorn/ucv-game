@@ -1,6 +1,6 @@
 use std::{collections::HashMap, net::SocketAddr};
 
-use anyhow::{Ok, Result};
+use anyhow::Result;
 use crossbeam::channel::{Receiver, Sender};
 use log::{debug, warn};
 
