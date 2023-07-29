@@ -15,7 +15,7 @@ export function login(password: string): Promise<void> {
 		socket.send(
 			JSON.stringify({
 				responseId,
-				action: 'organizerLogin',
+				action: 'login-organizer',
 				payload: password,
 			}),
 		);

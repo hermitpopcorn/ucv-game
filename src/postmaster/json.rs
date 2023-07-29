@@ -39,13 +39,13 @@ pub fn parse_message(message: String) -> Option<WebSocketMessage> {
 
 	let json: JsonMessage = parse.unwrap();
 	match json.action.as_str() {
-		"playerLogin" => {
+		"login-player" => {
 			return Some(WebSocketMessage {
 				response_id: json.response_id,
 				action: WebSocketMessageAction::LoginPlayer(json.payload),
 			})
 		}
-		"organizerLogin" => {
+		"login-organizer" => {
 			return Some(WebSocketMessage {
 				response_id: json.response_id,
 				action: WebSocketMessageAction::LoginOrganizer(json.payload),
