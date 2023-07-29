@@ -108,8 +108,8 @@ impl Database for SqliteDatabase {
 			Ok(Player {
 				id: row.get(0)?,
 				name: row.get(1)?,
-				points: row.get(2)?,
-				can_vote: row.get(3)?,
+				points: Some(row.get(2)?),
+				can_vote: Some(row.get(3)?),
 			})
 		});
 

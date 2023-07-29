@@ -24,8 +24,8 @@ pub type ClientsMap = HashMap<SocketAddr, Client>;
 pub struct Player {
 	pub id: u8,
 	pub name: String,
-	pub points: usize,
-	pub can_vote: bool,
+	pub points: Option<usize>,
+	pub can_vote: Option<bool>,
 }
 
 #[derive(Debug, Clone)]
