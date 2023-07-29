@@ -18,13 +18,13 @@
 	</main>
 
 	<footer class="flex flex-col justify-center items-center p-4">
-		{#if $websocketConnection == null}
+		{#if $websocketConnection.state == 'connecting'}
 			<p>Connecting...</p>
 		{/if}
-		{#if $websocketConnection == false}
+		{#if $websocketConnection.state == 'disconnected' || $websocketConnection.state == 'error'}
 			<p>Disconnected from game server.</p>
 		{/if}
-		{#if $websocketConnection}
+		{#if $websocketConnection.state == 'connected'}
 			{#if $player}
 				<p>Playing as <strong>{$player.name}</strong>.</p>
 			{:else}
