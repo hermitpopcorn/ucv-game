@@ -103,7 +103,7 @@ export function login(name: string): Promise<void> {
 		socket.send(
 			JSON.stringify({
 				responseId,
-				action: 'login',
+				action: 'playerLogin',
 				payload: name,
 			}),
 		);

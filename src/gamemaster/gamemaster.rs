@@ -154,7 +154,7 @@ fn register_active_player(
 	let ics = get_individual_channel_sender(&clients, &address);
 
 	ics.send(InternalMessage {
-		payload: InternalMessageAction::ResponseIdentity(player),
+		payload: InternalMessageAction::ResponsePlayerIdentity(player),
 		response_id,
 		..Default::default()
 	})

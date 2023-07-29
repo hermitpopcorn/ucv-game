@@ -31,17 +31,17 @@ pub fn parse_message(message: String) -> Option<WebSocketMessage> {
 
 	let json: JsonMessage = parse.unwrap();
 	match json.action.as_str() {
-		"login" => {
+		"playerLogin" => {
 			return Some(WebSocketMessage {
 				response_id: json.response_id,
-				action: WebSocketMessageAction::Login(json.payload),
+				action: WebSocketMessageAction::LoginPlayer(json.payload),
 			})
 		}
 		_ => return None,
 	}
 }
 
-pub fn make_json_identity_response(
+pub fn make_json_player_identity_response(
 	response_id: ResponseIdentifier,
 	player: Player,
 ) -> serde_json::Value {

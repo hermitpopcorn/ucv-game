@@ -11,7 +11,7 @@ pub enum InternalMessageAction {
 	// Responses by GM
 	ResponseOkay,
 	ResponseNotOkay(String),
-	ResponseIdentity(Player),
+	ResponsePlayerIdentity(Player),
 	ResponseActivePlayers(Vec<Player>),
 
 	// From Client to GM
@@ -38,7 +38,7 @@ impl Default for InternalMessage {
 
 #[derive(Debug, Clone)]
 pub enum WebSocketMessageAction {
-	Login(String),
+	LoginPlayer(String),
 }
 
 #[derive(Debug, Clone)]

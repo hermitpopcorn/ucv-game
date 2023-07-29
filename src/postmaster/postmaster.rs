@@ -13,8 +13,8 @@ use tokio_tungstenite::{
 
 use super::{
 	json::{
-		make_json_active_players, make_json_identity_response, make_json_not_okay_response,
-		make_json_okay_response, parse_message,
+		make_json_active_players, make_json_not_okay_response, make_json_okay_response,
+		make_json_player_identity_response, parse_message,
 	},
 	types::{
 		InternalMessage, InternalMessageAction, ResponseIdentifier, WebSocketMessage,
@@ -103,8 +103,8 @@ async fn handle_connection(
 					InternalMessageAction::ResponseNotOkay(message) => {
 						make_json_not_okay_response(channel_message.response_id, message)
 					},
-					InternalMessageAction::ResponseIdentity(player) => {
-						make_json_identity_response(channel_message.response_id, player)
+					InternalMessageAction::ResponsePlayerIdentity(player) => {
+						make_json_player_identity_response(channel_message.response_id, player)
 					},
 					InternalMessageAction::ResponseActivePlayers(active_players) => {
 						make_json_active_players(channel_message.response_id, active_players)
@@ -122,7 +122,7 @@ async fn handle_connection(
 
 fn handle_message(gmcs: &Sender<InternalMessage>, address: SocketAddr, message: WebSocketMessage) {
 	match message.action {
-		WebSocketMessageAction::Login(name) => {
+		WebSocketMessageAction::LoginPlayer(name) => {
 			log_in_player(gmcs, address, message.response_id, name)
 		}
 	};
