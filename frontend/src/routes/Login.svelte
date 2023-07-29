@@ -23,7 +23,7 @@
 
 	let loggingIn = false;
 	async function login() {
-		if (loggingIn) {
+		if (loggingIn || !playerName) {
 			return;
 		}
 		loggingIn = true;
