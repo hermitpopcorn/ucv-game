@@ -22,7 +22,7 @@ export type Organizer = {
 	name: string;
 };
 
-export type GamePhase =
+export type RoundState =
 	| 'standby'
 	| 'show-question'
 	| 'show-choices'
@@ -31,3 +31,27 @@ export type GamePhase =
 	| 'show-votes'
 	| 'defense'
 	| 'show-results';
+
+export type Round = {
+	id: number;
+	number: number;
+	phase: number;
+	state: RoundState;
+	question: string;
+	choiceA: string;
+	choiceB: string;
+};
+
+export type ChoiceOption = 'a' | 'b';
+
+export type Choice = {
+	id: number;
+	option: ChoiceOption;
+	lie: boolean;
+};
+
+export type GameState = {
+	round: Round;
+	players: ActivePlayers;
+	choices: Map<number, Choice>;
+};

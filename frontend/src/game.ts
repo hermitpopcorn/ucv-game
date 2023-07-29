@@ -1,11 +1,13 @@
 import { PUBLIC_GAMESERVER_URL } from '$env/static/public';
 import { toast } from '@zerodevx/svelte-toast';
 import { get } from 'svelte/store';
+import { v4 as generateUuid } from 'uuid';
 import { websocketConnection } from '$base/stores';
-import { setPlayer } from './player';
-import { setOrganizer } from './organizer';
+import { gameState as gameStateStore } from '$base/stores';
+import { setPlayer } from '$base/player';
+import { setOrganizer } from '$base/organizer';
 
-import type { Organizer, Player, WebSocketMessage } from '$base/types';
+import type { GameState, WebSocketMessage } from '$base/types';
 
 const awaitResponseStack: Map<string, () => void> = new Map();
 
@@ -84,7 +86,7 @@ export function getWebsocketConnection(): WebSocket {
 }
 
 function handleMessage(message: WebSocketMessage) {
-	console.debug(message);
+	console.debug(message.action, message.payload);
 
 	if (message.action == 'ok') {
 		// None
@@ -93,14 +95,33 @@ function handleMessage(message: WebSocketMessage) {
 	} else if (message.action == 'show-message') {
 		toast.push(message.payload, { classes: ['toast'] });
 	} else if (message.action == 'set-player') {
-		const player: Player = message.payload;
-		setPlayer(player);
+		setPlayer(message.payload);
 	} else if (message.action == 'set-organizer') {
-		const organizer: Organizer = message.payload;
-		setOrganizer(organizer);
+		setOrganizer(message.payload);
+	} else if (message.action == 'set-game-state') {
+		setGameState(message.payload);
 	}
 
 	if (message.responseId) {
 		resolveResponseStack(message.responseId);
 	}
+}
+
+export function getGameState(): Promise<void> {
+	return new Promise((resolve) => {
+		const socket = getWebsocketConnection();
+		const responseId = generateUuid();
+		socket.send(
+			JSON.stringify({
+				responseId,
+				action: 'get-game-state',
+			}),
+		);
+
+		pushResponseStack(responseId, resolve);
+	});
+}
+
+export function setGameState(gameState: GameState) {
+	gameStateStore.set(gameState);
 }
