@@ -2,7 +2,8 @@
 	import { player, websocketConnection } from '$base/stores';
 	import Spinner from '$lib/Spinner.svelte';
 	import Button from '$lib/Button.svelte';
-	import { connect, login as gameLogin } from '$base/game';
+	import { connect } from '$base/game';
+	import { login as playerLogin } from '$base/player';
 	import TextInput from '$base/lib/TextInput.svelte';
 	import { toast } from '@zerodevx/svelte-toast';
 
@@ -28,7 +29,7 @@
 			return;
 		}
 		loggingIn = true;
-		await gameLogin(playerName);
+		await playerLogin(playerName);
 		loggingIn = false;
 	}
 </script>

@@ -1,11 +1,15 @@
 import { PUBLIC_GAMESERVER_URL } from '$env/static/public';
 import { toast } from '@zerodevx/svelte-toast';
 import { get } from 'svelte/store';
-import { v4 as generateUuid } from 'uuid';
-import { player as playerStore, websocketConnection } from '$base/stores';
+import { websocketConnection } from '$base/stores';
+import { setPlayer } from './player';
 import type { Player, WebSocketMessage } from '$base/types';
 
 const awaitResponseStack: Map<string, () => void> = new Map();
+
+export function pushResponseStack(id: string, callback: () => void) {
+	awaitResponseStack.set(id, callback);
+}
 
 function resolveResponseStack(id: string) {
 	const resolver = awaitResponseStack.get(id);
@@ -68,6 +72,15 @@ function connectWebsocket(): Promise<WebSocket> {
 	});
 }
 
+export function getWebsocketConnection(): WebSocket {
+	const socket = get(websocketConnection);
+	if (socket.state !== 'connected' || !socket.connection) {
+		throw new Error('Not connected.');
+	}
+
+	return socket.connection;
+}
+
 function handleMessage(message: WebSocketMessage) {
 	console.debug(message);
 
@@ -79,35 +92,10 @@ function handleMessage(message: WebSocketMessage) {
 		toast.push(message.payload, { classes: ['toast'] });
 	} else if (message.action == 'set-player') {
 		const player: Player = message.payload;
-		playerStore.set(player);
+		setPlayer(player);
 	}
 
 	if (message.responseId) {
 		resolveResponseStack(message.responseId);
 	}
-}
-
-function getWebsocketConnection(): WebSocket {
-	const socket = get(websocketConnection);
-	if (socket.state !== 'connected' || !socket.connection) {
-		throw new Error('Not connected.');
-	}
-
-	return socket.connection;
-}
-
-export function login(name: string): Promise<void> {
-	return new Promise((resolve) => {
-		const socket = getWebsocketConnection();
-		const responseId = generateUuid();
-		socket.send(
-			JSON.stringify({
-				responseId,
-				action: 'playerLogin',
-				payload: name,
-			}),
-		);
-
-		awaitResponseStack.set(responseId, () => resolve());
-	});
 }
