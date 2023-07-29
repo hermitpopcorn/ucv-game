@@ -18,6 +18,10 @@ export type Player = {
 
 export type ActivePlayers = Array<Player>;
 
+export type Organizer = {
+	name: string;
+};
+
 export type GamePhase =
 	| 'standby'
 	| 'show-question'

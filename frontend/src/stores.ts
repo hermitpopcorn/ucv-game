@@ -1,5 +1,5 @@
 import { writable, type Writable } from 'svelte/store';
-import type { Player, WebSocketConnection } from './types';
+import type { Organizer, Player, WebSocketConnection } from '$base/types';
 
 export const websocketConnection: Writable<WebSocketConnection> = writable({
 	state: 'disconnected',
@@ -7,3 +7,5 @@ export const websocketConnection: Writable<WebSocketConnection> = writable({
 });
 
 export const player: Writable<Player | null> = writable(null);
+
+export const organizer: Writable<Organizer | null> = writable(null);

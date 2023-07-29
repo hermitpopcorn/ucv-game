@@ -3,7 +3,9 @@ import { toast } from '@zerodevx/svelte-toast';
 import { get } from 'svelte/store';
 import { websocketConnection } from '$base/stores';
 import { setPlayer } from './player';
-import type { Player, WebSocketMessage } from '$base/types';
+import { setOrganizer } from './organizer';
+
+import type { Organizer, Player, WebSocketMessage } from '$base/types';
 
 const awaitResponseStack: Map<string, () => void> = new Map();
 
@@ -93,6 +95,9 @@ function handleMessage(message: WebSocketMessage) {
 	} else if (message.action == 'set-player') {
 		const player: Player = message.payload;
 		setPlayer(player);
+	} else if (message.action == 'set-organizer') {
+		const organizer: Organizer = message.payload;
+		setOrganizer(organizer);
 	}
 
 	if (message.responseId) {
