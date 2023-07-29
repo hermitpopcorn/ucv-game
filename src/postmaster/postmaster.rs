@@ -1,7 +1,7 @@
 use std::net::SocketAddr;
 
 use crossbeam::channel::{unbounded, Sender};
-use futures_util::{future, SinkExt, StreamExt};
+use futures_util::{future, stream::SplitSink, SinkExt, StreamExt};
 use log::{error, info};
 use tokio::net::TcpStream;
 use tokio_tungstenite::{
@@ -9,6 +9,7 @@ use tokio_tungstenite::{
 	tungstenite::{
 		Error as TungsteniteError, Message as TungsteniteMessage, Result as TungsteniteResult,
 	},
+	WebSocketStream,
 };
 
 use super::{
@@ -94,25 +95,9 @@ async fn handle_connection(
 					continue;
 				}
 
-				let channel_message: InternalMessage = individual_channel_message.expect("Could not unwrap channel message");
+				let internal_message: InternalMessage = individual_channel_message.expect("Could not unwrap channel message");
 
-				let json: serde_json::Value = match channel_message.payload {
-					InternalMessageAction::ResponseOkay => {
-						make_json_okay_response(channel_message.response_id)
-					},
-					InternalMessageAction::ResponseNotOkay(message) => {
-						make_json_not_okay_response(channel_message.response_id, message)
-					},
-					InternalMessageAction::ResponsePlayerIdentity(player) => {
-						make_json_player_identity_response(channel_message.response_id, player)
-					},
-					InternalMessageAction::ResponseActivePlayers(active_players) => {
-						make_json_active_players(channel_message.response_id, active_players)
-					},
-					_ => continue,
-				};
-
-				ws_sender.send(TungsteniteMessage::Text(json.to_string())).await?;
+				forward_message(&mut ws_sender, internal_message).await?;
 			}
 		}
 	}
@@ -126,6 +111,29 @@ fn handle_message(gmcs: &Sender<InternalMessage>, address: SocketAddr, message: 
 			log_in_player(gmcs, address, message.response_id, name)
 		}
 	};
+}
+
+async fn forward_message(
+	wss: &mut SplitSink<WebSocketStream<TcpStream>, TungsteniteMessage>,
+	internal_message: InternalMessage,
+) -> TungsteniteResult<()> {
+	let json: serde_json::Value = match internal_message.payload {
+		InternalMessageAction::ResponseOkay => {
+			make_json_okay_response(internal_message.response_id)
+		}
+		InternalMessageAction::ResponseNotOkay(message) => {
+			make_json_not_okay_response(internal_message.response_id, message)
+		}
+		InternalMessageAction::ResponsePlayerIdentity(player) => {
+			make_json_player_identity_response(internal_message.response_id, player)
+		}
+		InternalMessageAction::ResponseActivePlayers(active_players) => {
+			make_json_active_players(internal_message.response_id, active_players)
+		}
+		_ => return Ok(()),
+	};
+
+	wss.send(TungsteniteMessage::Text(json.to_string())).await
 }
 
 fn log_in_player(
