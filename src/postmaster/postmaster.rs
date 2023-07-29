@@ -75,17 +75,20 @@ async fn handle_connection(
 				match socket_message {
 					Some(message) => {
 						let message = message?;
-						if message.is_text() || message.is_binary() {
-							let message = parse_message(message.to_string());
-							if message.is_none() {
-								continue;
-							}
-
-							handle_message(&gm_channel_sender, address, message.unwrap());
-						} else if message.is_close() {
+						if message.is_close() {
 							exit_client(&gm_channel_sender, address);
 							break;
 						}
+						if !message.is_text() && !message.is_binary() {
+							continue;
+						}
+
+						let message = parse_message(message.to_string());
+						if message.is_none() {
+							continue;
+						}
+
+						handle_message(&gm_channel_sender, address, message.unwrap());
 					}
 					None => continue,
 				}
