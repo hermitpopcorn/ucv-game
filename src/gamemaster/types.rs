@@ -59,3 +59,45 @@ impl RoundState {
 		}
 	}
 }
+
+#[derive(Debug, Clone)]
+pub struct Round {
+	pub id: u8,
+	pub number: u8,
+	pub phase: u8,
+	pub state: RoundState,
+	pub question: String,
+	pub choice_a: String,
+	pub choice_b: String,
+}
+
+#[derive(Debug, Clone)]
+pub enum ChoiceOption {
+	ChoiceA,
+	ChoiceB,
+}
+
+impl ChoiceOption {
+	fn as_str(&self) -> &'static str {
+		match self {
+			ChoiceOption::ChoiceA => "a",
+			ChoiceOption::ChoiceB => "b",
+		}
+	}
+}
+
+#[derive(Debug, Clone)]
+pub struct Choice {
+	pub id: u8,
+	pub option: ChoiceOption,
+	pub lie: bool,
+}
+
+pub type ChoicesMap = HashMap<u8, Choice>;
+
+#[derive(Debug, Clone)]
+pub struct GameState {
+	pub round: Option<Round>,
+	pub players: Vec<Player>,
+	pub choices: ChoicesMap,
+}

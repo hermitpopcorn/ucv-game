@@ -9,7 +9,9 @@ use crate::{
 	postmaster::types::{InternalMessage, InternalMessageAction, ResponseIdentifier},
 };
 
-use super::types::{Client, ClientStatus, ClientsMap, Organizer, Player};
+use super::types::{
+	ChoicesMap, Client, ClientStatus, ClientsMap, GameState, Organizer, Player, Round,
+};
 
 pub async fn start_gamemaster(
 	gm_channel_receiver: Receiver<InternalMessage>,
@@ -40,6 +42,9 @@ pub async fn start_gamemaster(
 			}
 			InternalMessageAction::ExitClient(address) => {
 				exit_client(&mut clients, address);
+			}
+			InternalMessageAction::RetrieveGameState(address, response_id) => {
+				retrieve_game_state(&database, &clients, address, response_id);
 			}
 			_ => continue,
 		}
@@ -232,4 +237,45 @@ fn retrieve_active_players(clients: &ClientsMap, address: SocketAddr) {
 fn exit_client(clients: &mut ClientsMap, address: SocketAddr) {
 	clients.remove(&address);
 	debug!("Removed client: {}", address);
+}
+
+fn compile_game_state(database: &DatabaseAccess, clients: &ClientsMap) -> GameState {
+	let players = get_players(clients);
+	let mut round: Option<Round> = None;
+	let mut choices: ChoicesMap = HashMap::new();
+
+	let db_access = database.lock().expect("Could not get access to database");
+	round = db_access.get_active_round().ok();
+
+	if round.is_some() {
+		match db_access.get_choices_by_round_id(round.as_ref().unwrap().id) {
+			Ok(choices_for_active_round) => {
+				choices = choices_for_active_round;
+			}
+			Err(_) => {}
+		}
+	}
+
+	GameState {
+		round,
+		players,
+		choices,
+	}
+}
+
+fn retrieve_game_state(
+	database: &DatabaseAccess,
+	clients: &ClientsMap,
+	address: SocketAddr,
+	response_id: ResponseIdentifier,
+) {
+	let game_state = compile_game_state(database, clients);
+
+	let ics = get_individual_channel_sender(&clients, &address);
+	ics.send(InternalMessage {
+		payload: InternalMessageAction::ResponseGameState(game_state),
+		response_id,
+		..Default::default()
+	})
+	.expect("Could not send game state");
 }
