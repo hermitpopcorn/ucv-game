@@ -14,8 +14,9 @@ use tokio_tungstenite::{
 
 use super::{
 	json::{
-		make_json_active_players, make_json_not_okay_response, make_json_okay_response,
-		make_json_organizer_identity_response, make_json_player_identity_response, parse_message,
+		make_json_active_players, make_json_game_state, make_json_not_okay_response,
+		make_json_okay_response, make_json_organizer_identity_response,
+		make_json_player_identity_response, parse_message,
 	},
 	types::{
 		InternalMessage, InternalMessageAction, ResponseIdentifier, WebSocketMessage,
@@ -116,6 +117,10 @@ fn handle_message(gmcs: &Sender<InternalMessage>, address: SocketAddr, message: 
 		WebSocketMessageAction::LoginOrganizer(password) => {
 			log_in_organizer(gmcs, address, message.response_id, password)
 		}
+
+		WebSocketMessageAction::RetrieveGameState() => {
+			retrieve_game_state(gmcs, address, message.response_id)
+		}
 	};
 }
 
@@ -138,6 +143,9 @@ async fn forward_message(
 		}
 		InternalMessageAction::ResponseActivePlayers(active_players) => {
 			make_json_active_players(internal_message.response_id, active_players)
+		}
+		InternalMessageAction::ResponseGameState(game_state) => {
+			make_json_game_state(internal_message.response_id, game_state)
 		}
 		_ => return Ok(()),
 	};
@@ -183,4 +191,19 @@ fn exit_client(sender: &Sender<InternalMessage>, address: SocketAddr) {
 	sender
 		.send(internal_message)
 		.expect("Could not send request to GM for goodbye sengen");
+}
+
+fn retrieve_game_state(
+	sender: &Sender<InternalMessage>,
+	address: SocketAddr,
+	response_id: ResponseIdentifier,
+) {
+	let internal_message = InternalMessage {
+		payload: InternalMessageAction::RetrieveGameState(address, response_id),
+		..Default::default()
+	};
+
+	sender
+		.send(internal_message)
+		.expect("Could not send request to GM for game state");
 }

@@ -46,7 +46,7 @@ pub enum RoundState {
 }
 
 impl RoundState {
-	fn as_str(&self) -> &'static str {
+	pub fn as_str(&self) -> &'static str {
 		match self {
 			RoundState::Standby => "standby",
 			RoundState::ShowQuestion => "show-question",

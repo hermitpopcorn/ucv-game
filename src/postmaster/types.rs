@@ -46,6 +46,7 @@ impl Default for InternalMessage {
 pub enum WebSocketMessageAction {
 	LoginPlayer(String),
 	LoginOrganizer(String),
+	RetrieveGameState(),
 }
 
 #[derive(Debug, Clone)]
