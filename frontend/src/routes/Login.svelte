@@ -5,7 +5,6 @@
 	import { connect } from '$base/game';
 	import { login as playerLogin } from '$base/player';
 	import TextInput from '$base/lib/TextInput.svelte';
-	import { toast } from '@zerodevx/svelte-toast';
 
 	let phase: 'connect' | 'login' = 'connect';
 	let playerName = '';
@@ -16,7 +15,6 @@
 
 	function play() {
 		if ($player) {
-			toast.push('Alright lets go!', { classes: ['toast'] });
 			return;
 		}
 
