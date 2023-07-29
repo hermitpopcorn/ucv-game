@@ -27,5 +27,3 @@ export type GamePhase =
 	| 'show-votes'
 	| 'defense'
 	| 'show-results';
-
-export type Loading = 'loading';
