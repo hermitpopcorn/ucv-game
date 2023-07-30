@@ -51,7 +51,7 @@ export type Choice = {
 };
 
 export type GameState = {
-	round: Round;
+	round: Round | null;
 	players: ActivePlayers;
 	choices: Map<number, Choice>;
 };

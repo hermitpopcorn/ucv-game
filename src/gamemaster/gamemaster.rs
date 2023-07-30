@@ -183,13 +183,22 @@ fn register_active_player(
 	.expect("Could not send identity confirmation response");
 	debug!("Response (player identity confirmation) sent");
 
+	announce_active_players(&clients);
+}
+
+fn announce_active_players(clients: &ClientsMap) {
 	let players = get_players(&clients);
-	ics.send(InternalMessage {
-		payload: InternalMessageAction::ResponseActivePlayers(players),
-		..Default::default()
-	})
-	.expect("Could not send list of active players as response");
-	debug!("Response (list of connected players) sent");
+
+	for (address, client) in clients {
+		let ics = &client.individual_channel_sender;
+		let send = ics.send(InternalMessage {
+			payload: InternalMessageAction::ResponseActivePlayers(players.clone()),
+			..Default::default()
+		});
+		if send.is_err() {
+			warn!("Could not announce list of active players to: {}", address);
+		}
+	}
 }
 
 fn register_organizer(
@@ -248,6 +257,8 @@ fn retrieve_active_players(clients: &ClientsMap, address: SocketAddr) {
 fn exit_client(clients: &mut ClientsMap, address: SocketAddr) {
 	clients.remove(&address);
 	debug!("Removed client: {}", address);
+
+	announce_active_players(clients);
 }
 
 fn compile_game_state(database: &DatabaseAccess, clients: &ClientsMap) -> GameState {
