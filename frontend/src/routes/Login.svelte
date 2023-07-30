@@ -61,7 +61,7 @@
 			{/if}
 			{#if phase == 'login'}
 				<div class="flex flex-col" out:fade={{ duration: 90 }} in:fade={{ delay: 100 }}>
-					<TextInput bind:value={playerName} id="player-name" label="Player Name" />
+					<TextInput bind:value={playerName} id="player-name" label="Player Name" maxlength={12} />
 					<Button on:click={login}>
 						{#if !loggingIn}
 							Start

@@ -131,14 +131,20 @@ fn register_active_player(
 ) {
 	debug!("===== Register player");
 
+	// Limit player name to 12 characters
+	let trimmed_name = &name[0..std::cmp::min(name.len(), 12)];
+
 	// Get lock to database
 	let db_access = database.lock().expect("Could not get access to database");
 
 	// Find player data in database
-	debug!("Finding/creating player ({})...", &name);
+	debug!("Finding/creating player ({})...", &trimmed_name);
 	let player = db_access
-		.find_or_create_player(&name)
-		.expect(&format!("Could not find or create player: {}.", &name));
+		.find_or_create_player(&trimmed_name)
+		.expect(&format!(
+			"Could not find or create player: {}.",
+			&trimmed_name
+		));
 
 	// Loop clients, see if player already exists
 	for (iter_address, iter_client) in clients.iter() {
