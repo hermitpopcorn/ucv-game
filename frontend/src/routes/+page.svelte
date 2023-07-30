@@ -22,15 +22,15 @@
 	<meta name="description" content="Unique Constraint Violation game" />
 </svelte:head>
 
-<section class="flex flex-col justify-center items-center" style="flex: 0.6">
+<div class="flex flex-1 flex-col justify-center items-center">
 	{#if page === 'login'}
-		<div out:fade={{ duration: 90 }} in:fade={{ delay: 100 }}>
+		<div class="flex flex-1" out:fade={{ duration: 90 }} in:fade={{ delay: 100 }}>
 			<Login />
 		</div>
 	{/if}
 	{#if page === 'game'}
-		<div out:fade={{ duration: 90 }} in:fade={{ delay: 100 }}>
+		<div class="flex flex-1" out:fade={{ duration: 90 }} in:fade={{ delay: 100 }}>
 			<Game />
 		</div>
 	{/if}
-</section>
+</div>
