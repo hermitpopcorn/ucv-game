@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { fade } from 'svelte/transition';
 	import { player, websocketConnection } from '$base/stores';
 	import Spinner from '$lib/Spinner.svelte';
 	import Button from '$lib/Button.svelte';
@@ -42,16 +43,22 @@
 		{#if phase == 'connect'}
 			<div class="h-12">
 				{#if $websocketConnection.state === 'connected'}
-					<Button on:click={play}>Play</Button>
+					<div out:fade={{ duration: 90 }} in:fade={{ delay: 100 }}>
+						<Button on:click={play}>Play</Button>
+					</div>
 				{:else if $websocketConnection.state === 'connecting'}
-					<Spinner size={12} />
+					<div out:fade={{ duration: 90 }} in:fade={{ delay: 100 }}>
+						<Spinner size={12} />
+					</div>
 				{:else if $websocketConnection.state === 'error' || $websocketConnection.state === 'disconnected'}
-					<Button on:click={retryConnect}>Connect</Button>
+					<div out:fade={{ duration: 90 }} in:fade={{ delay: 100 }}>
+						<Button on:click={retryConnect}>Connect</Button>
+					</div>
 				{/if}
 			</div>
 		{/if}
 		{#if phase == 'login'}
-			<div class="flex flex-col">
+			<div class="flex flex-col" out:fade={{ duration: 90 }} in:fade={{ delay: 100 }}>
 				<TextInput bind:value={playerName} id="player-name" label="Player Name" />
 				<Button on:click={login}>
 					{#if !loggingIn}

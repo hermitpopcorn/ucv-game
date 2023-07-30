@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { fade } from 'svelte/transition';
 	import { player } from '$base/stores';
 	import Login from './Login.svelte';
 	import Game from './Game.svelte';
@@ -23,9 +24,13 @@
 
 <section class="flex flex-col justify-center items-center" style="flex: 0.6">
 	{#if page === 'login'}
-		<Login />
+		<div out:fade={{ duration: 90 }} in:fade={{ delay: 100 }}>
+			<Login />
+		</div>
 	{/if}
 	{#if page === 'game'}
-		<Game />
+		<div out:fade={{ duration: 90 }} in:fade={{ delay: 100 }}>
+			<Game />
+		</div>
 	{/if}
 </section>
