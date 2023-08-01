@@ -2,7 +2,7 @@
 	import { gameState } from '$base/stores';
 </script>
 
-<aside>
+<aside class={$$restProps.class || ''}>
 	<h1 class="font-bold text-lg mb-4">Active Players</h1>
 	<ul class="flex flex-wrap gap-4 justify-center">
 		{#if $gameState?.players}

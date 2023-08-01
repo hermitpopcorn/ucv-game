@@ -21,7 +21,7 @@
 	<meta name="description" content="Unique Constraint Violation game" />
 </svelte:head>
 
-<section class="flex flex-col justify-center items-center" style="flex: 0.6">
+<section class="flex flex-1 flex-col justify-center items-center">
 	{#if page === 'login'}
 		<Login />
 	{/if}
