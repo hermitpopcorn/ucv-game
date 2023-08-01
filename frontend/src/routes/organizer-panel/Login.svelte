@@ -4,7 +4,7 @@
 	import Button from '$lib/Button.svelte';
 	import { connect } from '$base/game';
 	import { login as organizerLogin } from '$base/organizer';
-	import TextInput from '$base/lib/TextInput.svelte';
+	import Input from '$base/lib/Input.svelte';
 
 	let phase: 'connect' | 'login' = 'connect';
 	let password = '';
@@ -52,7 +52,7 @@
 		{/if}
 		{#if phase == 'login'}
 			<div class="flex flex-col">
-				<TextInput bind:value={password} id="organizer-password" label="Password" />
+				<Input bind:value={password} id="organizer-password" label="Password" />
 				<Button on:click={login}>
 					{#if !loggingIn}
 						Access

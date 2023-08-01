@@ -5,7 +5,7 @@
 	import Button from '$lib/Button.svelte';
 	import { connect } from '$base/game';
 	import { login as playerLogin } from '$base/player';
-	import TextInput from '$base/lib/TextInput.svelte';
+	import Input from '$base/lib/Input.svelte';
 
 	let phase: 'connect' | 'login' = 'connect';
 	let playerName = '';
@@ -61,7 +61,7 @@
 			{/if}
 			{#if phase == 'login'}
 				<div class="flex flex-col" out:fade={{ duration: 90 }} in:fade={{ delay: 100 }}>
-					<TextInput bind:value={playerName} id="player-name" label="Player Name" maxlength={12} />
+					<Input bind:value={playerName} id="player-name" label="Player Name" maxlength={12} />
 					<Button on:click={login}>
 						{#if !loggingIn}
 							Start
