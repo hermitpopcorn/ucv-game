@@ -3,7 +3,7 @@
 	import { getGameState } from '$base/game';
 	import { gameState, player } from '$base/stores';
 	import Spinner from '$base/lib/Spinner.svelte';
-	import type { Player } from '$base/types';
+	import PlayerList from './PlayerList.svelte';
 
 	let refreshingGameState = false;
 	onMount(async () => {
@@ -33,18 +33,6 @@
 		</section>
 	</div>
 	<div class="flex flex-col w-full box-border justify-center" style="flex: 0 0 20%">
-		<aside>
-			<h1 class="font-bold text-lg mb-4">Active Players</h1>
-			<ul class="flex flex-wrap gap-4 justify-center">
-				{#if $gameState?.players}
-					{#each $gameState.players as player}
-						<li class="flex flex-col items-center">
-							<h3 class="text-sm">{player.name}</h3>
-							<h4 class="text-xs">{player.points} P</h4>
-						</li>
-					{/each}
-				{/if}
-			</ul>
-		</aside>
+		<PlayerList />
 	</div>
 </section>
