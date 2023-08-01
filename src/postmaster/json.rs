@@ -95,12 +95,82 @@ impl Serialize for GameState {
 	}
 }
 
+struct RoundStateVisitor;
+
+impl<'de> serde::de::Visitor<'de> for RoundStateVisitor {
+	type Value = RoundState;
+
+	fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+		formatter.write_str("a RoundState string")
+	}
+
+	fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+	where
+		E: serde::de::Error,
+	{
+		match value {
+			"standby" => Ok(RoundState::Standby),
+			"show-question" => Ok(RoundState::ShowQuestion),
+			"show-choices" => Ok(RoundState::ShowChoices),
+			"voting-time" => Ok(RoundState::VotingTime),
+			"voting-locked" => Ok(RoundState::VotingLocked),
+			"show-votes" => Ok(RoundState::ShowVotes),
+			"defense" => Ok(RoundState::Defense),
+			"show-results" => Ok(RoundState::ShowResults),
+			_ => Err(E::custom("invalid RoundState string")),
+		}
+	}
+}
+
+impl<'de> serde::de::Deserialize<'de> for RoundState {
+	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+	where
+		D: serde::Deserializer<'de>,
+	{
+		deserializer.deserialize_str(RoundStateVisitor)
+	}
+}
+
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-struct JsonMessage {
+struct JsonAction {
 	response_id: ResponseIdentifier,
 	action: String,
+}
+
+#[derive(Deserialize, Debug)]
+struct JsonMessagePayload {
 	payload: Option<String>,
+}
+
+#[derive(Deserialize, Debug)]
+struct JsonRound {
+	id: u8,
+	number: u8,
+	phase: u8,
+	state: RoundState,
+	question: String,
+	choiceA: String,
+	choiceB: String,
+}
+
+impl JsonRound {
+	fn as_round(self) -> Round {
+		Round {
+			id: self.id,
+			number: self.number,
+			phase: self.phase,
+			state: self.state,
+			question: self.question,
+			choice_a: self.choiceA,
+			choice_b: self.choiceB,
+		}
+	}
+}
+
+#[derive(Deserialize, Debug)]
+struct JsonSetRoundPayload {
+	payload: JsonRound,
 }
 
 pub fn parse_message(message: String) -> Option<WebSocketMessage> {
@@ -109,25 +179,49 @@ pub fn parse_message(message: String) -> Option<WebSocketMessage> {
 		return None;
 	}
 
-	let json: JsonMessage = parse.unwrap();
+	let json: JsonAction = parse.unwrap();
 	match json.action.as_str() {
 		"login-player" => {
+			let parsed_payload: Result<JsonMessagePayload, _> = serde_json::from_str(&message);
+			if parsed_payload.is_err() {
+				return None;
+			}
+			let parsed_payload = parsed_payload.unwrap();
+
 			return Some(WebSocketMessage {
 				response_id: json.response_id,
-				action: WebSocketMessageAction::LoginPlayer(json.payload.unwrap()),
-			})
+				action: WebSocketMessageAction::LoginPlayer(parsed_payload.payload.unwrap()),
+			});
 		}
 		"login-organizer" => {
+			let parsed_payload: Result<JsonMessagePayload, _> = serde_json::from_str(&message);
+			if parsed_payload.is_err() {
+				return None;
+			}
+			let parsed_payload = parsed_payload.unwrap();
+
 			return Some(WebSocketMessage {
 				response_id: json.response_id,
-				action: WebSocketMessageAction::LoginOrganizer(json.payload.unwrap()),
-			})
+				action: WebSocketMessageAction::LoginOrganizer(parsed_payload.payload.unwrap()),
+			});
 		}
 		"get-game-state" => {
 			return Some(WebSocketMessage {
 				response_id: json.response_id,
 				action: WebSocketMessageAction::RetrieveGameState(),
-			})
+			});
+		}
+		"set-round" => {
+			let parsed_payload: Result<JsonSetRoundPayload, _> = serde_json::from_str(&message);
+			if parsed_payload.is_err() {
+				return None;
+			}
+			let parsed_payload = parsed_payload.unwrap();
+
+			return Some(WebSocketMessage {
+				response_id: json.response_id,
+				action: WebSocketMessageAction::SetRound(parsed_payload.payload.as_round()),
+			});
 		}
 		_ => return None,
 	}
@@ -204,5 +298,13 @@ pub fn make_json_game_state(
 		"responseId": response_id,
 		"action": "set-game-state",
 		"payload": game_state,
+	})
+}
+
+pub fn make_json_round(response_id: ResponseIdentifier, round: Round) -> serde_json::Value {
+	json!({
+		"responseId": response_id,
+		"action": "set-round",
+		"payload": round,
 	})
 }

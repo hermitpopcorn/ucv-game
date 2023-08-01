@@ -1,9 +1,20 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import { getGameState } from '$base/game';
 	import Button from '$base/lib/Button.svelte';
 	import Input from '$base/lib/Input.svelte';
 	import { gameState } from '$base/stores';
 	import type { Round, RoundState } from '$base/types';
+	import { updateRound } from '$base/organizer';
 	import PlayerList from './PlayerList.svelte';
+	import Spinner from '$base/lib/Spinner.svelte';
+
+	let refreshingGameState = false;
+	onMount(async () => {
+		refreshingGameState = true;
+		await getGameState();
+		refreshingGameState = false;
+	});
 
 	let round = 1;
 	let phase = 1;
@@ -25,12 +36,36 @@
 		choiceB = newGameState.round.choiceB;
 	});
 
-	function updateRound() {
-		// TODO
+	let updating = false;
+
+	async function setRound() {
+		if (updating) {
+			return;
+		}
+		updating = true;
+
+		await updateRound({
+			id: 0,
+			number: round,
+			phase: phase,
+			state: state,
+			question: question,
+			choiceA: choiceA,
+			choiceB: choiceB,
+		});
+		updating = false;
 	}
 </script>
 
 <section class="flex flex-1 w-full">
+	{#if refreshingGameState || $gameState == null}
+		<div
+			class="fixed top-0 left-0 right-0 bottom-0 w-full h-screen z-50
+			overflow-hidden bg-slate-600 bg-opacity-50 flex flex-col items-center justify-center"
+		>
+			<Spinner size={12} />
+		</div>
+	{/if}
 	<div class="flex flex-col w-full box-border" style="flex: 0 0 80%">
 		<article class="border-4 p-4">
 			<h1 class="font-bold text-lg mb-4">Round Setup</h1>
@@ -74,7 +109,13 @@
 					</div>
 				</div>
 				<div>
-					<Button class="w-full" on:click={updateRound}>Set</Button>
+					<Button class="w-full" on:click={setRound}>
+						{#if !updating}
+							Set
+						{:else}
+							<Spinner color="red" size={6} />
+						{/if}
+					</Button>
 				</div>
 			</form>
 		</article>

@@ -7,7 +7,7 @@ import { gameState as gameStateStore } from '$base/stores';
 import { setPlayer } from '$base/player';
 import { setOrganizer } from '$base/organizer';
 
-import type { GameState, Player, WebSocketMessage } from '$base/types';
+import type { GameState, Player, Round, WebSocketMessage } from '$base/types';
 
 const awaitResponseStack: Map<string, () => void> = new Map();
 
@@ -100,6 +100,8 @@ function handleMessage(message: WebSocketMessage) {
 		setOrganizer(message.payload);
 	} else if (message.action == 'refresh-active-players-list') {
 		setActivePlayers(message.payload);
+	} else if (message.action == 'set-round') {
+		setRound(message.payload);
 	} else if (message.action == 'set-game-state') {
 		setGameState(message.payload);
 	}
@@ -139,6 +141,17 @@ export function setActivePlayers(activePlayersList: Array<Player>) {
 		}
 
 		gameState.players = activePlayersList;
+		return gameState;
+	});
+}
+
+function setRound(round: Round) {
+	gameStateStore.update((gameState) => {
+		if (gameState === null) {
+			gameState = getBlankGameState();
+		}
+
+		gameState.round = round;
 		return gameState;
 	});
 }

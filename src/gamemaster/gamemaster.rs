@@ -57,6 +57,15 @@ pub async fn start_gamemaster(
 			InternalMessageAction::RetrieveGameState(address) => {
 				retrieve_game_state(&database, &clients, address, received_message.response_id);
 			}
+			InternalMessageAction::SetRound(address, round) => {
+				set_round(
+					&database,
+					&clients,
+					address,
+					received_message.response_id,
+					round,
+				);
+			}
 			_ => continue,
 		}
 	}
@@ -306,4 +315,90 @@ fn retrieve_game_state(
 		..Default::default()
 	})
 	.expect("Could not send game state");
+}
+
+fn is_organizer(clients: &ClientsMap, address: &SocketAddr) -> bool {
+	let client = clients.get(address);
+	if client.is_none() {
+		return false;
+	}
+	let client = client.unwrap();
+
+	return client.organizer.is_some();
+}
+
+fn set_round(
+	database: &DatabaseAccess,
+	clients: &ClientsMap,
+	address: SocketAddr,
+	response_id: ResponseIdentifier,
+	round: Round,
+) {
+	debug!("===== Set round");
+
+	if !is_organizer(clients, &address) {
+		warn!("Set round request came from a non-organizer");
+		return;
+	}
+
+	let db_access = database.lock().expect("Could not get access to database");
+	let find_existing_round = db_access.find_round_by_number_and_phase(round.number, round.phase);
+
+	let updated_round = match find_existing_round {
+		Ok(db_round) => db_access
+			.update_round(
+				db_round.number,
+				db_round.phase,
+				Some(round.state),
+				Some(round.question),
+				Some(round.choice_a),
+				Some(round.choice_b),
+			)
+			.expect("Could not update round"),
+		Err(_) => db_access
+			.create_round(
+				round.number,
+				round.phase,
+				round.state,
+				round.question,
+				round.choice_a,
+				round.choice_b,
+			)
+			.expect("Could not create round"),
+	};
+
+	announce_round(database, clients, Some(updated_round));
+
+	let ics = get_individual_channel_sender(&clients, &address);
+	ics.send(InternalMessage {
+		payload: InternalMessageAction::ResponseOkay,
+		response_id,
+		..Default::default()
+	})
+	.expect("Could not send okay response");
+}
+
+fn announce_round(database: &DatabaseAccess, clients: &ClientsMap, round: Option<Round>) {
+	let announce_round;
+	if round.is_none() {
+		let db_access = database.lock().expect("Could not get access to database");
+		let active_round = db_access.get_active_round();
+		if (active_round.is_err()) {
+			return;
+		}
+		announce_round = active_round.unwrap();
+	} else {
+		announce_round = round.unwrap();
+	}
+
+	for (address, client) in clients {
+		let ics = &client.individual_channel_sender;
+		let send = ics.send(InternalMessage {
+			payload: InternalMessageAction::ResponseRound(announce_round.clone()),
+			..Default::default()
+		});
+		if send.is_err() {
+			warn!("Could not announce round state to: {}", address);
+		}
+	}
 }

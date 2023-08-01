@@ -171,7 +171,7 @@ impl Database for SqliteDatabase {
 		choice_b: String,
 	) -> Result<Round> {
 		let mut statement = self.connection.prepare(
-			"INSERT INTO Round (number, phase, state, question, choice_a, choice_b)
+			"INSERT INTO Rounds (number, phase, state, question, choice_a, choice_b)
 				VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
 		)?;
 		let affected =
@@ -207,6 +207,70 @@ impl Database for SqliteDatabase {
 		}
 
 		Ok(choices)
+	}
+
+	fn find_round_by_number_and_phase(&self, number: u8, phase: u8) -> Result<Round> {
+		let mut statement = self.connection.prepare(
+			"SELECT id, number, phase, state, question, choice_a, choice_b
+			FROM Rounds WHERE number = ?1 AND phase = ?2",
+		)?;
+
+		let find = statement.query_row(params![number, phase], |row| {
+			Ok(Round {
+				id: row.get(0)?,
+				number: row.get(1)?,
+				phase: row.get(2)?,
+				state: row.get(3)?,
+				question: row.get(4)?,
+				choice_a: row.get(5)?,
+				choice_b: row.get(6)?,
+			})
+		});
+
+		match find {
+			Ok(round) => Ok(round),
+			Err(_) => bail!("Could not find round"),
+		}
+	}
+
+	fn update_round(
+		&self,
+		number: u8,
+		phase: u8,
+		state: Option<RoundState>,
+		question: Option<String>,
+		choice_a: Option<String>,
+		choice_b: Option<String>,
+	) -> Result<Round> {
+		let mut round = self.find_round_by_number_and_phase(number, phase)?;
+
+		if let Some(new_state) = state {
+			round.state = new_state;
+		}
+		if let Some(new_question) = question {
+			round.question = new_question;
+		}
+		if let Some(new_choice_a) = choice_a {
+			round.choice_a = new_choice_a;
+		}
+		if let Some(new_choice_b) = choice_b {
+			round.choice_b = new_choice_b;
+		}
+
+		let mut statement = self.connection.prepare(
+			"UPDATE Rounds SET state = ?1, question = ?2, choice_a = ?3, choice_b = ?4
+				WHERE number = ?5 AND phase = ?6",
+		)?;
+		statement.execute(params![
+			round.state,
+			round.question,
+			round.choice_a,
+			round.choice_b,
+			round.number,
+			round.phase
+		])?;
+
+		Ok(round)
 	}
 }
 
