@@ -131,6 +131,36 @@ impl<'de> serde::de::Deserialize<'de> for RoundState {
 	}
 }
 
+struct ChoiceOptionVisitor;
+
+impl<'de> serde::de::Visitor<'de> for ChoiceOptionVisitor {
+	type Value = ChoiceOption;
+
+	fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+		formatter.write_str("a ChoiceOption string")
+	}
+
+	fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+	where
+		E: serde::de::Error,
+	{
+		match value {
+			"a" => Ok(ChoiceOption::ChoiceA),
+			"b" => Ok(ChoiceOption::ChoiceB),
+			_ => Err(E::custom("invalid ChoiceOption string")),
+		}
+	}
+}
+
+impl<'de> serde::de::Deserialize<'de> for ChoiceOption {
+	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+	where
+		D: serde::Deserializer<'de>,
+	{
+		deserializer.deserialize_str(ChoiceOptionVisitor)
+	}
+}
+
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 struct JsonAction {
@@ -171,6 +201,11 @@ impl JsonRound {
 #[derive(Deserialize, Debug)]
 struct JsonSetRoundPayload {
 	payload: JsonRound,
+}
+
+#[derive(Deserialize, Debug)]
+struct JsonSetChoicePayload {
+	payload: ChoiceOption,
 }
 
 pub fn parse_message(message: String) -> Option<WebSocketMessage> {
@@ -221,6 +256,18 @@ pub fn parse_message(message: String) -> Option<WebSocketMessage> {
 			return Some(WebSocketMessage {
 				response_id: json.response_id,
 				action: WebSocketMessageAction::SetRound(parsed_payload.payload.as_round()),
+			});
+		}
+		"set-choice" => {
+			let parsed_payload: Result<JsonSetChoicePayload, _> = serde_json::from_str(&message);
+			if parsed_payload.is_err() {
+				return None;
+			}
+			let parsed_payload = parsed_payload.unwrap();
+
+			return Some(WebSocketMessage {
+				response_id: json.response_id,
+				action: WebSocketMessageAction::SetChoice(parsed_payload.payload),
 			});
 		}
 		_ => return None,
@@ -306,5 +353,20 @@ pub fn make_json_round(response_id: ResponseIdentifier, round: Round) -> serde_j
 		"responseId": response_id,
 		"action": "set-round",
 		"payload": round,
+	})
+}
+
+pub fn make_json_player_choice(
+	response_id: ResponseIdentifier,
+	player: Player,
+	choice: Choice,
+) -> serde_json::Value {
+	json!({
+		"responseId": response_id,
+		"action": "set-player-choice",
+		"payload": {
+			"player": player,
+			"choice": choice,
+		},
 	})
 }

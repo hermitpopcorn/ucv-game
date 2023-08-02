@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use anyhow::Result;
 
-use crate::gamemaster::types::{ChoicesMap, Player, Round, RoundState};
+use crate::gamemaster::types::{Choice, ChoiceOption, ChoicesMap, Player, Round, RoundState};
 
 pub type DatabaseAccess = Arc<Mutex<dyn Database>>;
 
@@ -33,6 +33,14 @@ pub trait Database: Send {
 		choice_a: Option<String>,
 		choice_b: Option<String>,
 	) -> Result<Round>;
+
+	fn find_choice_by_round_and_player(&self, round_id: u8, player_id: u8) -> Result<Choice>;
+	fn update_or_create_choice(
+		&self,
+		round_id: u8,
+		player_id: u8,
+		choice: ChoiceOption,
+	) -> Result<Choice>;
 
 	fn get_choices_by_round_id(&self, round_id: u8) -> Result<ChoicesMap>;
 }

@@ -2,7 +2,7 @@ use std::net::SocketAddr;
 
 use crossbeam::channel::Sender;
 
-use crate::gamemaster::types::{GameState, Organizer, Player, Round};
+use crate::gamemaster::types::{Choice, ChoiceOption, GameState, Organizer, Player, Round};
 
 pub type ResponseIdentifier = Option<String>;
 
@@ -17,6 +17,7 @@ pub enum InternalMessageAction {
 	ResponseRound(Round),
 
 	ResponseOrganizerIdentity(Organizer),
+	ResponsePlayerChoice(Player, Choice),
 
 	// From Client to GM
 	ExitClient(SocketAddr),
@@ -24,6 +25,7 @@ pub enum InternalMessageAction {
 	RegisterActivePlayer(SocketAddr, String),
 	RetrieveActivePlayers(SocketAddr),
 	RetrieveGameState(SocketAddr),
+	SetChoice(SocketAddr, ChoiceOption),
 
 	RegisterOrganizer(SocketAddr, String),
 	SetRound(SocketAddr, Round),
@@ -50,6 +52,7 @@ pub enum WebSocketMessageAction {
 	LoginOrganizer(String),
 	RetrieveGameState(),
 	SetRound(Round),
+	SetChoice(ChoiceOption),
 }
 
 #[derive(Debug, Clone)]

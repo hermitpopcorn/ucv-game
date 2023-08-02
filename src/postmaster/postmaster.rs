@@ -12,12 +12,12 @@ use tokio_tungstenite::{
 	WebSocketStream,
 };
 
-use crate::gamemaster::types::Round;
+use crate::gamemaster::types::{ChoiceOption, Round};
 
 use super::{
 	json::{
 		make_json_active_players, make_json_game_state, make_json_not_okay_response,
-		make_json_okay_response, make_json_organizer_identity_response,
+		make_json_okay_response, make_json_organizer_identity_response, make_json_player_choice,
 		make_json_player_identity_response, make_json_round, parse_message,
 	},
 	types::{
@@ -127,6 +127,9 @@ fn handle_message(gmcs: &Sender<InternalMessage>, address: SocketAddr, message: 
 		WebSocketMessageAction::SetRound(round) => {
 			set_round(gmcs, address, message.response_id, round);
 		}
+		WebSocketMessageAction::SetChoice(choice) => {
+			set_choice(gmcs, address, message.response_id, choice);
+		}
 	};
 }
 
@@ -152,6 +155,9 @@ async fn forward_message(
 		}
 		InternalMessageAction::ResponseGameState(game_state) => {
 			make_json_game_state(internal_message.response_id, game_state)
+		}
+		InternalMessageAction::ResponsePlayerChoice(player, choice) => {
+			make_json_player_choice(internal_message.response_id, player, choice)
 		}
 		InternalMessageAction::ResponseRound(round) => {
 			make_json_round(internal_message.response_id, round)
@@ -235,4 +241,21 @@ fn set_round(
 	sender
 		.send(internal_message)
 		.expect("Could not send request to GM for setting round");
+}
+
+fn set_choice(
+	sender: &Sender<InternalMessage>,
+	address: SocketAddr,
+	response_id: ResponseIdentifier,
+	choice: ChoiceOption,
+) {
+	let internal_message = InternalMessage {
+		payload: InternalMessageAction::SetChoice(address, choice),
+		response_id,
+		..Default::default()
+	};
+
+	sender
+		.send(internal_message)
+		.expect("Could not send request to GM for setting choice");
 }

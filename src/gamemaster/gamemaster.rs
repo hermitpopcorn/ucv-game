@@ -10,7 +10,8 @@ use crate::{
 };
 
 use super::types::{
-	ChoicesMap, Client, ClientStatus, ClientsMap, GameState, Organizer, Player, Round,
+	Choice, ChoiceOption, ChoicesMap, Client, ClientStatus, ClientsMap, GameState, Organizer,
+	Player, Round,
 };
 
 pub async fn start_gamemaster(
@@ -66,6 +67,15 @@ pub async fn start_gamemaster(
 					round,
 				);
 			}
+			InternalMessageAction::SetChoice(address, choice) => {
+				set_choice(
+					&database,
+					&clients,
+					address,
+					received_message.response_id,
+					choice,
+				);
+			}
 			_ => continue,
 		}
 	}
@@ -101,6 +111,20 @@ fn get_players(clients_map: &ClientsMap) -> Vec<Player> {
 	}
 
 	players
+}
+
+fn get_organizers(clients_map: &ClientsMap) -> Vec<(&SocketAddr, &Client)> {
+	let mut organizers = vec![];
+
+	for (address, client) in clients_map.into_iter() {
+		if client.organizer.is_none() {
+			continue;
+		}
+
+		organizers.push((address, client));
+	}
+
+	organizers
 }
 
 fn register_client(
@@ -327,6 +351,16 @@ fn is_organizer(clients: &ClientsMap, address: &SocketAddr) -> bool {
 	return client.organizer.is_some();
 }
 
+fn is_player(clients: &ClientsMap, address: &SocketAddr) -> bool {
+	let client: Option<&Client> = clients.get(address);
+	if client.is_none() {
+		return false;
+	}
+	let client = client.unwrap();
+
+	return client.player.is_some();
+}
+
 fn set_round(
 	database: &DatabaseAccess,
 	clients: &ClientsMap,
@@ -399,6 +433,62 @@ fn announce_round(database: &DatabaseAccess, clients: &ClientsMap, round: Option
 		});
 		if send.is_err() {
 			warn!("Could not announce round state to: {}", address);
+		}
+	}
+}
+
+fn set_choice(
+	database: &DatabaseAccess,
+	clients: &ClientsMap,
+	address: SocketAddr,
+	response_id: ResponseIdentifier,
+	option: ChoiceOption,
+) {
+	debug!("===== Set choice");
+
+	if !is_player(clients, &address) {
+		warn!("Set round request came from a non-player");
+		return;
+	}
+
+	let db_access = database.lock().expect("Could not get access to database");
+
+	let round = db_access
+		.get_active_round()
+		.expect("Could not get active round");
+	let player = clients
+		.get(&address)
+		.expect("Could not get client")
+		.clone()
+		.player
+		.expect("Could not get player data");
+
+	let set_choice = db_access
+		.update_or_create_choice(round.id, player.id, option)
+		.expect("Could not set choice");
+
+	announce_choice_to_organizers(clients, player, set_choice);
+
+	let ics = get_individual_channel_sender(&clients, &address);
+	ics.send(InternalMessage {
+		payload: InternalMessageAction::ResponseOkay,
+		response_id,
+		..Default::default()
+	})
+	.expect("Could not send okay response");
+}
+
+fn announce_choice_to_organizers(clients: &ClientsMap, player: Player, choice: Choice) {
+	let organizers = get_organizers(&clients);
+
+	for (address, client) in organizers {
+		let ics = &client.individual_channel_sender;
+		let send = ics.send(InternalMessage {
+			payload: InternalMessageAction::ResponsePlayerChoice(player.clone(), choice.clone()),
+			..Default::default()
+		});
+		if send.is_err() {
+			warn!("Could not announce list of active players to: {}", address);
 		}
 	}
 }

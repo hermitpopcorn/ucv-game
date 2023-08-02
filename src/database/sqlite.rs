@@ -272,6 +272,63 @@ impl Database for SqliteDatabase {
 
 		Ok(round)
 	}
+
+	fn find_choice_by_round_and_player(&self, round_id: u8, player_id: u8) -> Result<Choice> {
+		let mut statement = self.connection.prepare(
+			"SELECT id, option, lie FROM Choices WHERE round_id = ?1 AND player_id = ?2",
+		)?;
+
+		let find = statement.query_row(params![round_id, player_id], |row| {
+			Ok(Choice {
+				id: row.get(0)?,
+				option: row.get(1)?,
+				lie: row.get(2)?,
+			})
+		});
+
+		match find {
+			Ok(choice) => Ok(choice),
+			Err(_) => bail!("Could not find choice"),
+		}
+	}
+
+	fn update_or_create_choice(
+		&self,
+		round_id: u8,
+		player_id: u8,
+		option: ChoiceOption,
+	) -> Result<Choice> {
+		let find = self.find_choice_by_round_and_player(round_id, player_id);
+
+		let sql = match find {
+			Ok(choice) => {
+				let mut statement = self
+					.connection
+					.prepare("UPDATE Choices SET option = ?1 WHERE id = ?2")?;
+				statement.execute(params![option, choice.id])
+			}
+			Err(_) => {
+				let mut statement = self.connection.prepare(
+					"INSERT INTO Choices (round_id, player_id, option) VALUES (?1, ?2, ?3)",
+				)?;
+				statement.execute(params![round_id, player_id, option])
+			}
+		};
+
+		if sql.is_err() {
+			bail!("Could not insert/update choice");
+		}
+
+		let refind = self
+			.find_choice_by_round_and_player(round_id, player_id)
+			.expect("Could not refind the inserted/updated choice");
+
+		Ok(Choice {
+			id: refind.id,
+			option: refind.option,
+			lie: refind.lie,
+		})
+	}
 }
 
 impl SqliteDatabase {
@@ -327,6 +384,15 @@ impl FromSql for RoundState {
 			6 => Ok(RoundState::Defense),
 			7 => Ok(RoundState::ShowResults),
 			_ => Err(FromSqlError::Other(Box::new(Error))),
+		}
+	}
+}
+
+impl ToSql for ChoiceOption {
+	fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
+		match self {
+			ChoiceOption::ChoiceA => Ok("a".into()),
+			ChoiceOption::ChoiceB => Ok("b".into()),
 		}
 	}
 }
