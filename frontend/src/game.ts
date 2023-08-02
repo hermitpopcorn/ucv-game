@@ -7,7 +7,7 @@ import { gameState as gameStateStore } from '$base/stores';
 import { setPlayer } from '$base/player';
 import { setOrganizer } from '$base/organizer';
 
-import type { GameState, Player, Round, WebSocketMessage } from '$base/types';
+import type { Choice, GameState, Player, Round, WebSocketMessage } from '$base/types';
 
 const awaitResponseStack: Map<string, () => void> = new Map();
 
@@ -104,6 +104,8 @@ function handleMessage(message: WebSocketMessage) {
 		setRound(message.payload);
 	} else if (message.action == 'set-game-state') {
 		setGameState(message.payload);
+	} else if (message.action == 'set-player-choice') {
+		setPlayerChoice(message.payload);
 	}
 
 	if (message.responseId) {
@@ -157,5 +159,24 @@ function setRound(round: Round) {
 }
 
 export function setGameState(gameState: GameState) {
+	const choicesMap: Map<number, Choice> = new Map();
+	if (gameState.choices) {
+		for (const c of Object.entries(gameState.choices)) {
+			choicesMap.set(Number(c[0]), c[1]);
+		}
+	}
+
+	gameState.choices = choicesMap;
 	gameStateStore.set(gameState);
+}
+
+export function setPlayerChoice({ player, choice }: { player: Player; choice: Choice }) {
+	gameStateStore.update((gameState) => {
+		if (gameState === null) {
+			gameState = getBlankGameState();
+		}
+
+		gameState.choices.set(player.id, choice);
+		return gameState;
+	});
 }

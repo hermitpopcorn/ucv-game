@@ -5,6 +5,7 @@
 
 	export let choiceA = '';
 	export let choiceB = '';
+	export let fixed = false;
 
 	let baseButtonClass = 'w-full text-white font-bold py-2 px-4 border-b-4 rounded';
 	let greenButtonClass = 'bg-green-600 border-green-800';
@@ -46,13 +47,12 @@
 		return baseButtonClass;
 	}
 
-	$: buttonAClass = getButtonClass('a', selected, selectionFixed);
-	$: buttonBClass = getButtonClass('b', selected, selectionFixed);
+	$: buttonAClass = getButtonClass('a', selected, fixed);
+	$: buttonBClass = getButtonClass('b', selected, fixed);
 
 	let selected: null | 'a' | 'b' = null;
-	let selectionFixed = false;
 	function confirmChoice(choice: 'a' | 'b') {
-		if (selectionFixed) {
+		if (fixed) {
 			return;
 		}
 
@@ -62,8 +62,6 @@
 		}
 
 		if (selected == choice) {
-			selectionFixed = true;
-
 			dispatch('finalized', choice);
 		}
 	}
@@ -79,7 +77,7 @@
 		>
 			<div class="flex flex-col items-center justify-center">
 				<p class="text-lg font-bold">A: {choiceA}</p>
-				{#if selected == 'a' && selectionFixed}
+				{#if selected == 'a' && fixed}
 					<p class="text-sm">You chose this option.</p>
 				{/if}
 			</div>
@@ -92,18 +90,18 @@
 		>
 			<div class="flex flex-col items-center justify-center">
 				<p class="text-lg font-bold">B: {choiceB}</p>
-				{#if selected == 'b' && selectionFixed}
+				{#if selected == 'b' && fixed}
 					<p class="text-sm">You chose this option.</p>
 				{/if}
 			</div>
 		</button>
 	</div>
 	<div class="w-full text-center text-sm">
-		{#if selected == null && !selectionFixed}
+		{#if selected == null && !fixed}
 			Click one of the buttons twice to make your choice.
-		{:else if selected != null && !selectionFixed}
+		{:else if selected != null && !fixed}
 			Click the button one more time to finalize.
-		{:else if selected != null && selectionFixed}
+		{:else if selected != null && fixed}
 			You've chosen to pick option {selected.toUpperCase()}!
 		{/if}
 	</div>

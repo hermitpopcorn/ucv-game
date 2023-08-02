@@ -23,3 +23,19 @@ export function login(name: string): Promise<void> {
 		pushResponseStack(responseId, resolve);
 	});
 }
+
+export function setChoice(choiceOption: string): Promise<void> {
+	return new Promise((resolve) => {
+		const socket = getWebsocketConnection();
+		const responseId = generateUuid();
+		socket.send(
+			JSON.stringify({
+				responseId,
+				action: 'set-choice',
+				payload: choiceOption,
+			}),
+		);
+
+		pushResponseStack(responseId, resolve);
+	});
+}

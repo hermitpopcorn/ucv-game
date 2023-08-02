@@ -46,7 +46,11 @@ async fn handle_connection(
 	stream: TcpStream,
 	gm_channel_sender: Sender<InternalMessage>,
 ) -> TungsteniteResult<()> {
-	let ws_stream = accept_async(stream).await.expect("Failed to accept");
+	let ws_stream = accept_async(stream).await;
+	if ws_stream.is_err() {
+		return Err(TungsteniteError::ConnectionClosed);
+	}
+	let ws_stream = ws_stream.unwrap();
 	info!("New WebSocket connection: {}", address);
 
 	let (mut ws_sender, mut ws_receiver) = ws_stream.split();

@@ -2,9 +2,11 @@
 	import { onMount } from 'svelte';
 	import { getGameState } from '$base/game';
 	import { gameState, player } from '$base/stores';
+	import { setChoice } from '$base/player';
 	import ChoiceButtons from '$base/lib/ChoiceButtons.svelte';
 	import Spinner from '$base/lib/Spinner.svelte';
 	import PlayerList from './PlayerList.svelte';
+	import { toast } from '@zerodevx/svelte-toast';
 
 	let refreshingGameState = false;
 	onMount(async () => {
@@ -13,8 +15,22 @@
 		refreshingGameState = false;
 	});
 
-	function finalizeVote(e: CustomEvent) {
+	let voteFixed = false;
+	async function finalizeVote(e: CustomEvent) {
+		if (voteFixed) {
+			return;
+		}
+
 		let selected: 'a' | 'b' = e.detail;
+		try {
+			await setChoice(selected);
+		} catch {
+			toast.push('Failed to send vote data to server.', {
+				classes: ['toast failure'],
+			});
+			return;
+		}
+		voteFixed = true;
 	}
 </script>
 
@@ -46,6 +62,7 @@
 							<ChoiceButtons
 								choiceA={$gameState.round.choiceA}
 								choiceB={$gameState.round.choiceB}
+								fixed={voteFixed}
 								on:finalized={finalizeVote}
 							/>
 						{/if}
