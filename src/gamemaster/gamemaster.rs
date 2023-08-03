@@ -302,11 +302,12 @@ fn exit_client(clients: &mut ClientsMap, address: SocketAddr) {
 
 fn compile_game_state(database: &DatabaseAccess, clients: &ClientsMap) -> GameState {
 	let players = get_players(clients);
-	let mut round: Option<Round> = None;
 	let mut choices: ChoicesMap = HashMap::new();
 
 	let db_access = database.lock().expect("Could not get access to database");
-	round = db_access.get_active_round().ok();
+	let round = db_access
+		.get_active_round()
+		.expect("Could not query database for active round");
 
 	if round.is_some() {
 		match db_access.get_choices_by_round_id(round.as_ref().unwrap().id) {
@@ -376,10 +377,12 @@ fn set_round(
 	}
 
 	let db_access = database.lock().expect("Could not get access to database");
-	let find_existing_round = db_access.find_round_by_number_and_phase(round.number, round.phase);
+	let find_existing_round = db_access
+		.find_round_by_number_and_phase(round.number, round.phase)
+		.expect("Could not query database to find round");
 
 	let updated_round = match find_existing_round {
-		Ok(db_round) => db_access
+		Some(db_round) => db_access
 			.update_round(
 				db_round.number,
 				db_round.phase,
@@ -389,7 +392,7 @@ fn set_round(
 				Some(round.choice_b),
 			)
 			.expect("Could not update round"),
-		Err(_) => db_access
+		None => db_access
 			.create_round(
 				round.number,
 				round.phase,
@@ -416,8 +419,10 @@ fn announce_round(database: &DatabaseAccess, clients: &ClientsMap, round: Option
 	let announce_round;
 	if round.is_none() {
 		let db_access = database.lock().expect("Could not get access to database");
-		let active_round = db_access.get_active_round();
-		if (active_round.is_err()) {
+		let active_round = db_access
+			.get_active_round()
+			.expect("Could not query database for active round");
+		if (active_round.is_none()) {
 			return;
 		}
 		announce_round = active_round.unwrap();
@@ -455,7 +460,14 @@ fn set_choice(
 
 	let round = db_access
 		.get_active_round()
-		.expect("Could not get active round");
+		.expect("Could not query database for active round");
+
+	if round.is_none() {
+		warn!("Trying to set choice when no round is active");
+		return;
+	}
+	let round = round.unwrap();
+
 	let player = clients
 		.get(&address)
 		.expect("Could not get client")

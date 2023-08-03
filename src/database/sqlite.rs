@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fmt::Error};
 
-use anyhow::{bail, Result};
+use anyhow::{anyhow, bail, Result};
 use rusqlite::{
 	params,
 	types::{FromSql, FromSqlError},
@@ -105,24 +105,23 @@ impl Database for SqliteDatabase {
 		Ok(())
 	}
 
-	fn find_player(&self, name: &str) -> Result<Player> {
+	fn find_player(&self, name: &str) -> Result<Option<Player>> {
 		let mut statement = self
 			.connection
 			.prepare("SELECT id, name, points, can_vote FROM Players WHERE name = ?1")?;
 
-		let find = statement.query_row(params![name], |row| {
-			Ok(Player {
-				id: row.get(0)?,
-				name: row.get(1)?,
-				points: Some(row.get(2)?),
-				can_vote: Some(row.get(3)?),
+		let find = statement
+			.query_row(params![name], |row| {
+				Ok(Player {
+					id: row.get(0)?,
+					name: row.get(1)?,
+					points: Some(row.get(2)?),
+					can_vote: Some(row.get(3)?),
+				})
 			})
-		});
+			.optional()?;
 
-		match find {
-			Ok(player) => Ok(player),
-			Err(_) => bail!("Could not find player"),
-		}
+		Ok(find)
 	}
 
 	fn create_player(&self, name: &str) -> Result<Player> {
@@ -135,29 +134,32 @@ impl Database for SqliteDatabase {
 			bail!("Incorrect number of affected rows")
 		}
 
-		self.find_player(name)
+		self.find_player(name)?
+			.ok_or(anyhow!("Could not find crated player"))
 	}
 
 	fn find_or_create_player(&self, name: &str) -> Result<Player> {
-		match self.find_player(name) {
-			Ok(player) => Ok(player),
-			Err(_) => self.create_player(name),
+		match self.find_player(name)? {
+			Some(player) => Ok(player),
+			None => self.create_player(name),
 		}
 	}
 
-	fn get_active_round(&self) -> Result<Round> {
+	fn get_active_round(&self) -> Result<Option<Round>> {
 		let mut statement = self
 			.connection
 			.prepare("SELECT id FROM Rounds ORDER BY number DESC, phase DESC LIMIT 1")?;
 
-		let find = statement.query_row(params![], |row| {
-			let id: u8 = row.get(0)?;
-			Ok(id)
-		});
+		let find = statement
+			.query_row(params![], |row| {
+				let id: u8 = row.get(0)?;
+				Ok(id)
+			})
+			.optional()?;
 
 		match find {
-			Ok(round_id) => self.get_round_by_id(round_id),
-			Err(_) => bail!("Could not find active round"),
+			Some(round_id) => self.get_round_by_id(round_id),
+			None => Ok(None),
 		}
 	}
 
@@ -183,7 +185,8 @@ impl Database for SqliteDatabase {
 
 		let last_inserted_id = self.connection.last_insert_rowid();
 
-		self.get_round_by_id(u8::try_from(last_inserted_id)?)
+		self.get_round_by_id(u8::try_from(last_inserted_id)?)?
+			.ok_or(anyhow!("Could not find created round"))
 	}
 
 	fn get_choices_by_round_id(&self, round_id: u8) -> Result<ChoicesMap> {
@@ -209,28 +212,27 @@ impl Database for SqliteDatabase {
 		Ok(choices)
 	}
 
-	fn find_round_by_number_and_phase(&self, number: u8, phase: u8) -> Result<Round> {
+	fn find_round_by_number_and_phase(&self, number: u8, phase: u8) -> Result<Option<Round>> {
 		let mut statement = self.connection.prepare(
 			"SELECT id, number, phase, state, question, choice_a, choice_b
 			FROM Rounds WHERE number = ?1 AND phase = ?2",
 		)?;
 
-		let find = statement.query_row(params![number, phase], |row| {
-			Ok(Round {
-				id: row.get(0)?,
-				number: row.get(1)?,
-				phase: row.get(2)?,
-				state: row.get(3)?,
-				question: row.get(4)?,
-				choice_a: row.get(5)?,
-				choice_b: row.get(6)?,
+		let find = statement
+			.query_row(params![number, phase], |row| {
+				Ok(Round {
+					id: row.get(0)?,
+					number: row.get(1)?,
+					phase: row.get(2)?,
+					state: row.get(3)?,
+					question: row.get(4)?,
+					choice_a: row.get(5)?,
+					choice_b: row.get(6)?,
+				})
 			})
-		});
+			.optional()?;
 
-		match find {
-			Ok(round) => Ok(round),
-			Err(_) => bail!("Could not find round"),
-		}
+		Ok(find)
 	}
 
 	fn update_round(
@@ -243,6 +245,10 @@ impl Database for SqliteDatabase {
 		choice_b: Option<String>,
 	) -> Result<Round> {
 		let mut round = self.find_round_by_number_and_phase(number, phase)?;
+		if round.is_none() {
+			bail!("Could not find round");
+		}
+		let mut round = round.unwrap();
 
 		if let Some(new_state) = state {
 			round.state = new_state;
@@ -273,23 +279,26 @@ impl Database for SqliteDatabase {
 		Ok(round)
 	}
 
-	fn find_choice_by_round_and_player(&self, round_id: u8, player_id: u8) -> Result<Choice> {
+	fn find_choice_by_round_and_player(
+		&self,
+		round_id: u8,
+		player_id: u8,
+	) -> Result<Option<Choice>> {
 		let mut statement = self.connection.prepare(
 			"SELECT id, option, lie FROM Choices WHERE round_id = ?1 AND player_id = ?2",
 		)?;
 
-		let find = statement.query_row(params![round_id, player_id], |row| {
-			Ok(Choice {
-				id: row.get(0)?,
-				option: row.get(1)?,
-				lie: row.get(2)?,
+		let find = statement
+			.query_row(params![round_id, player_id], |row| {
+				Ok(Choice {
+					id: row.get(0)?,
+					option: row.get(1)?,
+					lie: row.get(2)?,
+				})
 			})
-		});
+			.optional()?;
 
-		match find {
-			Ok(choice) => Ok(choice),
-			Err(_) => bail!("Could not find choice"),
-		}
+		Ok(find)
 	}
 
 	fn update_or_create_choice(
@@ -298,16 +307,16 @@ impl Database for SqliteDatabase {
 		player_id: u8,
 		option: ChoiceOption,
 	) -> Result<Choice> {
-		let find = self.find_choice_by_round_and_player(round_id, player_id);
+		let find = self.find_choice_by_round_and_player(round_id, player_id)?;
 
 		let sql = match find {
-			Ok(choice) => {
+			Some(choice) => {
 				let mut statement = self
 					.connection
 					.prepare("UPDATE Choices SET option = ?1 WHERE id = ?2")?;
 				statement.execute(params![option, choice.id])
 			}
-			Err(_) => {
+			None => {
 				let mut statement = self.connection.prepare(
 					"INSERT INTO Choices (round_id, player_id, option) VALUES (?1, ?2, ?3)",
 				)?;
@@ -320,8 +329,8 @@ impl Database for SqliteDatabase {
 		}
 
 		let refind = self
-			.find_choice_by_round_and_player(round_id, player_id)
-			.expect("Could not refind the inserted/updated choice");
+			.find_choice_by_round_and_player(round_id, player_id)?
+			.ok_or(anyhow!("Could not refind the inserted/updated choice"))?;
 
 		Ok(Choice {
 			id: refind.id,
@@ -332,28 +341,27 @@ impl Database for SqliteDatabase {
 }
 
 impl SqliteDatabase {
-	fn get_round_by_id(&self, id: u8) -> Result<Round> {
+	fn get_round_by_id(&self, id: u8) -> Result<Option<Round>> {
 		let mut statement = self.connection.prepare(
 			"SELECT id, number, phase, state, question, choice_a, choice_b
 				FROM Rounds WHERE id = ?1",
 		)?;
 
-		let find = statement.query_row(params![id], |row| {
-			Ok(Round {
-				id: row.get(0)?,
-				number: row.get(1)?,
-				phase: row.get(2)?,
-				state: row.get(3)?,
-				question: row.get(4)?,
-				choice_a: row.get(5)?,
-				choice_b: row.get(6)?,
+		let find = statement
+			.query_row(params![id], |row| {
+				Ok(Round {
+					id: row.get(0)?,
+					number: row.get(1)?,
+					phase: row.get(2)?,
+					state: row.get(3)?,
+					question: row.get(4)?,
+					choice_a: row.get(5)?,
+					choice_b: row.get(6)?,
+				})
 			})
-		});
+			.optional()?;
 
-		match find {
-			Ok(round) => Ok(round),
-			Err(_) => bail!("Could not find active round"),
-		}
+		Ok(find)
 	}
 }
 
