@@ -13,7 +13,7 @@ export type Player = {
 	id: number;
 	name: string;
 	points: number;
-	canVote: boolean;
+	canVote?: boolean;
 };
 
 export type ActivePlayers = Array<Player>;

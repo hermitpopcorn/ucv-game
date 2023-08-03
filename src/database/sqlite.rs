@@ -338,6 +338,22 @@ impl Database for SqliteDatabase {
 			lie: refind.lie,
 		})
 	}
+
+	fn check_player_is_allowed_to_vote(&self, player_id: u8) -> Result<bool> {
+		let mut statement = self
+			.connection
+			.prepare("SELECT can_vote FROM Players WHERE id = ?1")?;
+
+		let find = statement.query_row(params![player_id], |row| {
+			let can_vote: bool = row.get(0)?;
+			Ok(can_vote)
+		});
+		if find.is_err() {
+			bail!("Could not find player");
+		}
+
+		Ok(find.unwrap())
+	}
 }
 
 impl SqliteDatabase {

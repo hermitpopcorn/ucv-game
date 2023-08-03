@@ -201,7 +201,7 @@ fn register_active_player(
 					response_id,
 					..Default::default()
 				})
-				.expect("Could not send NG as response");
+				.expect("Could not send NG response");
 			return;
 		}
 	}
@@ -474,6 +474,23 @@ fn set_choice(
 		.clone()
 		.player
 		.expect("Could not get player data");
+
+	let check = db_access
+		.check_player_is_allowed_to_vote(player.id)
+		.expect("Could not query database for player data");
+
+	if check == false {
+		let ics = get_individual_channel_sender(&clients, &address);
+		ics.send(InternalMessage {
+			payload: InternalMessageAction::ResponseNotOkay(
+				"You are not allowed to vote.".to_owned(),
+			),
+			response_id,
+			..Default::default()
+		})
+		.expect("Could not send NG response");
+		return;
+	}
 
 	let set_choice = db_access
 		.update_or_create_choice(round.id, player.id, option)

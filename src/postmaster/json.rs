@@ -17,6 +17,7 @@ impl Serialize for Player {
 		state.serialize_field("id", &self.id)?;
 		state.serialize_field("name", &self.name)?;
 		state.serialize_field("points", &self.points)?;
+		state.serialize_field("canVote", &self.can_vote)?;
 		state.end()
 	}
 }

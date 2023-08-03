@@ -6,53 +6,60 @@
 	export let choiceA = '';
 	export let choiceB = '';
 	export let fixed = false;
+	export let disabled = true;
 
-	let baseButtonClass = 'w-full text-white font-bold py-2 px-4 border-b-4 rounded';
+	let baseButtonClass = 'w-full text-white font-bold py-2 px-4 border-b-4 rounded ';
 	let greenButtonClass = 'bg-green-600 border-green-800';
 	let selectedGreenButtonClass = 'border-green-500 bg-green-400';
 	let redButtonClass = 'bg-red-600 border-red-800';
 	let selectedRedButtonClass = 'border-red-500 bg-red-400';
 	let fixedButtonClass = 'bg-blue-500 border-blue-700';
 	let unselectedButtonClass = 'bg-gray-300 border-gray-400';
+	let disabledButtonClass = 'bg-gray-400 border-gray-500';
 
 	function getButtonClass(
 		which: 'a' | 'b',
 		selectedChoice: 'a' | 'b' | null,
 		isSelectionFixed: boolean,
+		isDisabled: boolean,
 	): string {
+		if (isDisabled) {
+			return baseButtonClass + disabledButtonClass;
+		}
+
 		if (which != selectedChoice && !isSelectionFixed) {
 			if (which == 'a') {
-				return baseButtonClass + ' ' + greenButtonClass;
+				return baseButtonClass + greenButtonClass;
 			} else if (which == 'b') {
-				return baseButtonClass + ' ' + redButtonClass;
+				return baseButtonClass + redButtonClass;
 			}
 		}
 
 		if (which == selectedChoice && !isSelectionFixed) {
 			if (which == 'a') {
-				return baseButtonClass + ' ' + selectedGreenButtonClass;
+				return baseButtonClass + selectedGreenButtonClass;
 			} else if (which == 'b') {
-				return baseButtonClass + ' ' + selectedRedButtonClass;
+				return baseButtonClass + selectedRedButtonClass;
 			}
 		}
 
 		if (isSelectionFixed) {
 			if (which == selectedChoice) {
-				return baseButtonClass + ' ' + fixedButtonClass;
+				return baseButtonClass + fixedButtonClass;
 			} else {
-				return baseButtonClass + ' ' + unselectedButtonClass;
+				return baseButtonClass + unselectedButtonClass;
 			}
 		}
 
 		return baseButtonClass;
 	}
 
-	$: buttonAClass = getButtonClass('a', selected, fixed);
-	$: buttonBClass = getButtonClass('b', selected, fixed);
+	$: buttonAClass = getButtonClass('a', selected, fixed, disabled);
+	$: buttonBClass = getButtonClass('b', selected, fixed, disabled);
 
 	let selected: null | 'a' | 'b' = null;
 	function confirmChoice(choice: 'a' | 'b') {
-		if (fixed) {
+		if (fixed || disabled) {
 			return;
 		}
 
@@ -97,7 +104,9 @@
 		</button>
 	</div>
 	<div class="w-full text-center text-sm">
-		{#if selected == null && !fixed}
+		{#if disabled}
+			You are not allowed to vote on this round.
+		{:else if selected == null && !fixed}
 			Click one of the buttons twice to make your choice.
 		{:else if selected != null && !fixed}
 			Click the button one more time to finalize.

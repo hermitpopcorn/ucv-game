@@ -63,6 +63,7 @@
 								choiceA={$gameState.round.choiceA}
 								choiceB={$gameState.round.choiceB}
 								fixed={voteFixed}
+								disabled={!($player?.canVote ?? false)}
 								on:finalized={finalizeVote}
 							/>
 						{/if}
