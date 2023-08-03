@@ -105,7 +105,7 @@ impl Database for SqliteDatabase {
 		Ok(())
 	}
 
-	fn find_player(&self, name: &str) -> Result<Option<Player>> {
+	fn find_player_by_name(&self, name: &str) -> Result<Option<Player>> {
 		let mut statement = self
 			.connection
 			.prepare("SELECT id, name, points, can_vote FROM Players WHERE name = ?1")?;
@@ -134,12 +134,12 @@ impl Database for SqliteDatabase {
 			bail!("Incorrect number of affected rows")
 		}
 
-		self.find_player(name)?
+		self.find_player_by_name(name)?
 			.ok_or(anyhow!("Could not find crated player"))
 	}
 
 	fn find_or_create_player(&self, name: &str) -> Result<Player> {
-		match self.find_player(name)? {
+		match self.find_player_by_name(name)? {
 			Some(player) => Ok(player),
 			None => self.create_player(name),
 		}

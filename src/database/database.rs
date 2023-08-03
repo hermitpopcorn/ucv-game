@@ -9,7 +9,7 @@ pub type DatabaseAccess = Arc<Mutex<dyn Database>>;
 pub trait Database: Send {
 	fn initialize_database(&self) -> Result<()>;
 
-	fn find_player(&self, name: &str) -> Result<Option<Player>>;
+	fn find_player_by_name(&self, name: &str) -> Result<Option<Player>>;
 	fn create_player(&self, name: &str) -> Result<Player>;
 	fn find_or_create_player(&self, name: &str) -> Result<Player>;
 
@@ -47,4 +47,6 @@ pub trait Database: Send {
 	) -> Result<Choice>;
 
 	fn get_choices_by_round_id(&self, round_id: u8) -> Result<ChoicesMap>;
+
+	fn check_player_is_allowed_to_vote(&self, player_id: u8) -> Result<bool>;
 }
