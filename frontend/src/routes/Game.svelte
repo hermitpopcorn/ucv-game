@@ -1,13 +1,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { getGameState } from '$base/game';
-	import { gameState as gameStateStore, player as playerStore } from '$base/stores';
+	import { gameState, gameState as gameStateStore, player as playerStore } from '$base/stores';
 	import { get } from 'svelte/store';
 	import { setChoice } from '$base/player';
 	import ChoiceButtons from '$base/lib/ChoiceButtons.svelte';
 	import Spinner from '$base/lib/Spinner.svelte';
 	import PlayerList from './PlayerList.svelte';
 	import { toast } from '@zerodevx/svelte-toast';
+	import Votes from './Votes.svelte';
 
 	let refreshingGameState = false;
 	onMount(async () => {
@@ -89,6 +90,11 @@
 								interactable={$gameStateStore.round.state == 'voting-time'}
 								on:finalized={finalizeVote}
 							/>
+						{/if}
+						{#if $gameStateStore.round.state == 'show-votes'}
+							<div class="flex items-center justify-center">
+								<Votes />
+							</div>
 						{/if}
 					{/if}
 				{/if}
