@@ -161,6 +161,7 @@ fn register_client(
 		},
 	);
 
+	debug!("===== Client registered. Sending okay response...");
 	let client = clients
 		.get(&address)
 		.expect("Could not get inserted client");

@@ -12,7 +12,7 @@ use tokio_tungstenite::{
 	WebSocketStream,
 };
 
-use crate::gamemaster::types::{Choice, ChoiceOption, MarkChoiceLie, Player, Round};
+use crate::gamemaster::types::{ChoiceOption, MarkChoiceLie, Player, Round};
 
 use super::{
 	json::{
@@ -58,6 +58,7 @@ async fn handle_connection(
 
 	let (individual_channel_sender, individual_channel_receiver) = unbounded::<InternalMessage>();
 
+	info!("Sending client registration: {}", address);
 	gm_channel_sender
 		.send(InternalMessage {
 			payload: InternalMessageAction::RegisterClient(
@@ -68,12 +69,13 @@ async fn handle_connection(
 		})
 		.expect("Could not send client registration message");
 
+	info!("Awaiting client registration response: {}", address);
 	let receive = individual_channel_receiver
 		.recv()
 		.expect("Could not receive client registration response");
 
 	match receive.payload {
-		InternalMessageAction::ResponseOkay => (),
+		InternalMessageAction::ResponseOkay => info!("Client registered successfully."),
 		_ => panic!("Invalid response received from client registration process"),
 	};
 

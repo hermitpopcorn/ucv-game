@@ -1,10 +1,14 @@
-use std::sync::{Arc, Mutex};
+use std::{
+	process::exit,
+	sync::{Arc, Mutex},
+};
 
 use crossbeam::channel::unbounded;
 use database::sqlite::SqliteDatabase;
 use env_logger::Env;
+use futures_util::future;
 use gamemaster::gamemaster::start_gamemaster;
-use log::info;
+use log::{info, warn};
 use postmaster::{postmaster::accept_connection, types::InternalMessage};
 use tokio::{net::TcpListener, spawn};
 
@@ -28,7 +32,7 @@ async fn main() {
 	let (gm_channel_sender, gm_channel_receiver) = unbounded::<InternalMessage>();
 
 	// Run gamemaster in new thread
-	let _gamemaster_handle = spawn(start_gamemaster(
+	let gamemaster_handle = spawn(start_gamemaster(
 		gm_channel_receiver.clone(),
 		database_arc.clone(),
 	));
@@ -37,12 +41,22 @@ async fn main() {
 	let listener = TcpListener::bind(&addr).await.expect("Can't listen");
 	info!("Listening on: {}", addr);
 
-	while let Ok((stream, _)) = listener.accept().await {
-		let peer = stream
-			.peer_addr()
-			.expect("connected streams should have a peer address");
-		info!("Peer address: {}", peer);
+	loop {
+		tokio::select! {
+			Ok((stream, _)) = listener.accept() => {
+				let peer = stream.peer_addr().expect("connected streams should have a peer address");
+				info!("Peer address: {}", peer);
 
-		spawn(accept_connection(peer, stream, gm_channel_sender.clone()));
+				spawn(accept_connection(peer, stream, gm_channel_sender.clone()));
+			},
+			gm_handle_finished = future::lazy(|_| gamemaster_handle.is_finished()) => {
+				if !gm_handle_finished {
+					continue;
+				}
+
+				warn!("Gamemaster thread is dead!");
+				exit(1);
+			}
+		}
 	}
 }
