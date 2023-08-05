@@ -344,6 +344,18 @@ impl Database for SqliteDatabase {
 		Ok(round)
 	}
 
+	fn mark_choice_lie(&self, choice_id: u8, lie: bool) -> Result<()> {
+		let mut statement = self
+			.connection
+			.prepare("UPDATE Choices SET lie = ?1 WHERE id = ?2")?;
+		let update = statement.execute(params![lie, choice_id])?;
+
+		if update != 1 {
+			bail!("Could not mark choice");
+		}
+		Ok(())
+	}
+
 	fn find_choice_by_round_and_player(
 		&self,
 		round_id: u8,

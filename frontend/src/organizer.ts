@@ -2,7 +2,7 @@ import { v4 as generateUuid } from 'uuid';
 import { getWebsocketConnection, pushResponseStack } from '$base/game';
 import { organizer as organizerStore } from '$base/stores';
 
-import type { Organizer, Player, Round } from './types';
+import type { Choice, Organizer, Player, Round } from './types';
 import { toast } from '@zerodevx/svelte-toast';
 
 export function setOrganizer(organizer: Organizer) {
@@ -68,6 +68,32 @@ export function togglePlayerCanVote(player: Player, newCanVoteStatus: boolean): 
 		pushResponseStack(responseId, () => {
 			toast.pop(updatingToast);
 			toast.push('Player updated.', {
+				classes: ['toast success'],
+			});
+
+			resolve();
+		});
+	});
+}
+
+export function toggleVoteIsLie(choice: Choice, newLieStatus: boolean): Promise<void> {
+	const updatingToast = toast.push('Toggling lie status...', { initial: 0 });
+	choice.lie = newLieStatus;
+
+	return new Promise((resolve) => {
+		const socket = getWebsocketConnection();
+		const responseId = generateUuid();
+		socket.send(
+			JSON.stringify({
+				responseId,
+				action: 'set-vote-is-lie',
+				payload: choice,
+			}),
+		);
+
+		pushResponseStack(responseId, () => {
+			toast.pop(updatingToast);
+			toast.push('Lie status updated.', {
 				classes: ['toast success'],
 			});
 

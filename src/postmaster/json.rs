@@ -8,7 +8,8 @@ use serde_derive::Deserialize;
 use serde_json::json;
 
 use crate::gamemaster::types::{
-	Choice, ChoiceOption, GameState, Organizer, Player, Round, RoundState,
+	Choice, ChoiceOption, ChoicesMap, GameState, MarkChoiceLie, Organizer, Player, Round,
+	RoundState,
 };
 
 use super::types::{ResponseIdentifier, WebSocketMessage, WebSocketMessageAction};
@@ -64,7 +65,9 @@ impl<'de> serde::de::Deserialize<'de> for Player {
 						"canVote" => {
 							can_vote = Some(map.next_value()?);
 						}
-						_ => map.next_value()?,
+						_ => {
+							let _ = map.next_value()?;
+						}
 					}
 				}
 
@@ -93,6 +96,60 @@ impl Into<serde_json::Value> for Organizer {
 		json!({
 			"name": self.name,
 		})
+	}
+}
+
+impl<'de> serde::de::Deserialize<'de> for MarkChoiceLie {
+	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+	where
+		D: serde::Deserializer<'de>,
+	{
+		struct MarkChoiceLieVisitor;
+
+		impl<'de> serde::de::Visitor<'de> for MarkChoiceLieVisitor {
+			type Value = MarkChoiceLie;
+
+			fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+				formatter.write_str("an object with choice ID and lie status bool")
+			}
+
+			fn visit_map<V>(self, mut map: V) -> Result<Self::Value, V::Error>
+			where
+				V: MapAccess<'de>,
+			{
+				let mut id: Option<u8> = None;
+				let mut lie: Option<bool> = None;
+
+				while let Some(key) = map.next_key()? {
+					debug!("HELL: {}", key);
+					match key {
+						"id" => {
+							id = Some(map.next_value()?);
+						}
+						"lie" => {
+							lie = Some(map.next_value()?);
+						}
+						_ => {
+							let _: Option<&str> = map.next_value().expect("GUH");
+						}
+					}
+				}
+
+				if id.is_none() {
+					return Err(de::Error::missing_field("id"));
+				}
+				if lie.is_none() {
+					return Err(de::Error::missing_field("lie"));
+				}
+
+				Ok(MarkChoiceLie {
+					id: id.unwrap(),
+					lie: lie.unwrap(),
+				})
+			}
+		}
+
+		deserializer.deserialize_map(MarkChoiceLieVisitor)
 	}
 }
 
@@ -271,13 +328,18 @@ struct JsonSetRoundPayload {
 }
 
 #[derive(Deserialize, Debug)]
-struct JsonSetChoicePayload {
+struct JsonSetChoiceOptionPayload {
 	payload: ChoiceOption,
 }
 
 #[derive(Deserialize, Debug)]
 struct JsonSetPlayerPayload {
 	payload: Player,
+}
+
+#[derive(Deserialize, Debug)]
+struct JsonMarkChoicePayload {
+	payload: MarkChoiceLie,
 }
 
 pub fn parse_message(message: String) -> Option<WebSocketMessage> {
@@ -330,8 +392,22 @@ pub fn parse_message(message: String) -> Option<WebSocketMessage> {
 				action: WebSocketMessageAction::SetRound(parsed_payload.payload.as_round()),
 			});
 		}
+		"set-vote-is-lie" => {
+			let parsed_payload: Result<JsonMarkChoicePayload, _> = serde_json::from_str(&message);
+			if parsed_payload.is_err() {
+				debug!("argh {}", parsed_payload.unwrap_err());
+				return None;
+			}
+			let parsed_payload = parsed_payload.unwrap();
+
+			return Some(WebSocketMessage {
+				response_id: json.response_id,
+				action: WebSocketMessageAction::MarkChoiceLie(parsed_payload.payload),
+			});
+		}
 		"set-choice" => {
-			let parsed_payload: Result<JsonSetChoicePayload, _> = serde_json::from_str(&message);
+			let parsed_payload: Result<JsonSetChoiceOptionPayload, _> =
+				serde_json::from_str(&message);
 			if parsed_payload.is_err() {
 				return None;
 			}
@@ -339,13 +415,12 @@ pub fn parse_message(message: String) -> Option<WebSocketMessage> {
 
 			return Some(WebSocketMessage {
 				response_id: json.response_id,
-				action: WebSocketMessageAction::SetChoice(parsed_payload.payload),
+				action: WebSocketMessageAction::SetChoiceOption(parsed_payload.payload),
 			});
 		}
 		"set-player-can-vote" => {
 			let parsed_payload: Result<JsonSetPlayerPayload, _> = serde_json::from_str(&message);
 			if parsed_payload.is_err() {
-				debug!("argh {}", parsed_payload.unwrap_err());
 				return None;
 			}
 			let parsed_payload = parsed_payload.unwrap();
@@ -449,6 +524,17 @@ pub fn make_json_round(response_id: ResponseIdentifier, round: Round) -> serde_j
 		"responseId": response_id,
 		"action": "set-round",
 		"payload": round,
+	})
+}
+
+pub fn make_json_updated_choices(
+	response_id: ResponseIdentifier,
+	choices_map: ChoicesMap,
+) -> serde_json::Value {
+	json!({
+		"responseId": response_id,
+		"action": "set-choices",
+		"payload": choices_map,
 	})
 }
 

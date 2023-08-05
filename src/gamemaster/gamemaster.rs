@@ -1,6 +1,6 @@
 use std::{collections::HashMap, net::SocketAddr};
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 use crossbeam::channel::{Receiver, Sender};
 use log::{debug, error, warn};
 
@@ -10,8 +10,8 @@ use crate::{
 };
 
 use super::types::{
-	Choice, ChoiceOption, ChoicesMap, Client, ClientStatus, ClientsMap, GameState, Organizer,
-	Player, Round,
+	Choice, ChoiceOption, ChoicesMap, Client, ClientStatus, ClientsMap, GameState, MarkChoiceLie,
+	Organizer, Player, Round,
 };
 
 pub async fn start_gamemaster(
@@ -67,7 +67,7 @@ pub async fn start_gamemaster(
 					round,
 				);
 			}
-			InternalMessageAction::SetChoice(address, choice) => {
+			InternalMessageAction::SetChoiceOption(address, choice) => {
 				set_choice(
 					&database,
 					&clients,
@@ -83,6 +83,15 @@ pub async fn start_gamemaster(
 					address,
 					received_message.response_id,
 					player,
+				);
+			}
+			InternalMessageAction::MarkChoiceLie(address, mark) => {
+				mark_choice_lie(
+					&database,
+					&clients,
+					address,
+					received_message.response_id,
+					mark,
 				);
 			}
 			_ => continue,
@@ -249,6 +258,19 @@ fn announce_active_players(clients: &ClientsMap) {
 	}
 }
 
+fn announce_updated_choices(clients: &ClientsMap, choices: ChoicesMap) {
+	for (address, client) in clients {
+		let ics = &client.individual_channel_sender;
+		let send = ics.send(InternalMessage {
+			payload: InternalMessageAction::ResponseUpdatedChoices(choices.clone()),
+			..Default::default()
+		});
+		if send.is_err() {
+			warn!("Could not announce list of active players to: {}", address);
+		}
+	}
+}
+
 fn announce_updated_player(clients: &ClientsMap, player: Player) {
 	for (address, client) in clients {
 		let ics = &client.individual_channel_sender;
@@ -322,22 +344,34 @@ fn exit_client(clients: &mut ClientsMap, address: SocketAddr) {
 	announce_active_players(clients);
 }
 
-fn compile_game_state(database: &DatabaseAccess, clients: &ClientsMap) -> GameState {
-	let players = get_players(clients);
+fn compile_choices(database: &DatabaseAccess, round: &Round) -> ChoicesMap {
 	let mut choices: ChoicesMap = HashMap::new();
 
 	let db_access = database.lock().expect("Could not get access to database");
-	let round = db_access
-		.get_active_round()
-		.expect("Could not query database for active round");
+	match db_access.get_choices_by_round_id(round.id) {
+		Ok(choices_for_active_round) => {
+			choices = choices_for_active_round;
+		}
+		Err(_) => {}
+	}
+
+	choices
+}
+
+fn compile_game_state(database: &DatabaseAccess, clients: &ClientsMap) -> GameState {
+	let players = get_players(clients);
+	let mut round: Option<Round> = None;
+	let mut choices: ChoicesMap = HashMap::new();
+
+	{
+		let db_access = database.lock().expect("Could not get access to database");
+		round = db_access
+			.get_active_round()
+			.expect("Could not query database for active round");
+	}
 
 	if round.is_some() {
-		match db_access.get_choices_by_round_id(round.as_ref().unwrap().id) {
-			Ok(choices_for_active_round) => {
-				choices = choices_for_active_round;
-			}
-			Err(_) => {}
-		}
+		choices = compile_choices(database, round.as_ref().unwrap());
 	}
 
 	GameState {
@@ -437,14 +471,23 @@ fn set_round(
 	.expect("Could not send okay response");
 }
 
+fn get_active_round(database: &DatabaseAccess) -> Result<Round> {
+	let db_access = database.lock().expect("Could not get access to database");
+	let active_round = db_access.get_active_round()?;
+
+	if active_round.is_none() {
+		bail!("There is no active round");
+	}
+
+	Ok(active_round.unwrap())
+}
+
 fn announce_round(database: &DatabaseAccess, clients: &ClientsMap, round: Option<Round>) {
 	let announce_round;
 	if round.is_none() {
-		let db_access = database.lock().expect("Could not get access to database");
-		let active_round = db_access
-			.get_active_round()
-			.expect("Could not query database for active round");
-		if (active_round.is_none()) {
+		let active_round = get_active_round(database);
+		if active_round.is_err() {
+			warn!("Could not get active round: {}", active_round.unwrap_err());
 			return;
 		}
 		announce_round = active_round.unwrap();
@@ -474,7 +517,7 @@ fn set_choice(
 	debug!("===== Set choice");
 
 	if !is_player(clients, &address) {
-		warn!("Set round request came from a non-player");
+		warn!("Set choice request came from a non-player");
 		return;
 	}
 
@@ -519,6 +562,46 @@ fn set_choice(
 		.expect("Could not set choice");
 
 	announce_choice_to_organizers(clients, player, set_choice);
+
+	let ics = get_individual_channel_sender(&clients, &address);
+	ics.send(InternalMessage {
+		payload: InternalMessageAction::ResponseOkay,
+		response_id,
+		..Default::default()
+	})
+	.expect("Could not send okay response");
+}
+
+fn mark_choice_lie(
+	database: &DatabaseAccess,
+	clients: &ClientsMap,
+	address: SocketAddr,
+	response_id: ResponseIdentifier,
+	mark: MarkChoiceLie,
+) {
+	debug!("===== Mark choice");
+
+	if !is_organizer(clients, &address) {
+		warn!("Mark choice request came from a non-organizer");
+		return;
+	}
+
+	let round = get_active_round(database);
+	if round.is_err() {
+		warn!("Could not get active round: {}", round.unwrap_err());
+		return;
+	}
+	let round = round.unwrap();
+
+	let db_access = database.lock().expect("Could not get access to database");
+	let update = db_access.mark_choice_lie(mark.id, mark.lie);
+	if update.is_err() {
+		warn!("Failed marking choice: {}", update.unwrap_err());
+		return;
+	}
+
+	drop(db_access);
+	announce_updated_choices(clients, compile_choices(database, &round));
 
 	let ics = get_individual_channel_sender(&clients, &address);
 	ics.send(InternalMessage {

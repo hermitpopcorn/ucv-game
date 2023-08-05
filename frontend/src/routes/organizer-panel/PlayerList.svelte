@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { togglePlayerCanVote } from '$base/organizer';
+	import { togglePlayerCanVote, toggleVoteIsLie } from '$base/organizer';
 	import { gameState } from '$base/stores';
 	import type { Choice, Player } from '$base/types';
 
@@ -38,6 +38,20 @@
 		await togglePlayerCanVote(player, !player.canVote);
 		working = false;
 	}
+
+	async function toggleLie(choice: Choice | undefined) {
+		if (working) {
+			return;
+		}
+
+		if (!choice) {
+			return;
+		}
+
+		working = true;
+		await toggleVoteIsLie(choice, !choice.lie);
+		working = false;
+	}
 </script>
 
 <aside class={$$restProps.class || ''}>
@@ -66,6 +80,7 @@
 								<strong>{data.choice.option.toUpperCase()}</strong>
 								<button
 									class="text-xs bg-blue-400 hover:bg-blue-600 text-white font-bold px-2 rounded"
+									on:click={() => toggleLie(data.choice)}
 								>
 									Lie
 									{#if data.choice.lie}

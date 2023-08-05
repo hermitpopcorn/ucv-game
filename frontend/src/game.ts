@@ -7,7 +7,7 @@ import { gameState as gameStateStore } from '$base/stores';
 import { setPlayer, setPlayerIfSelf } from '$base/player';
 import { setOrganizer } from '$base/organizer';
 
-import type { Choice, GameState, Player, Round, WebSocketMessage } from '$base/types';
+import type { Choice, ChoiceMap, GameState, Player, Round, WebSocketMessage } from '$base/types';
 
 const awaitResponseStack: Map<string, () => void> = new Map();
 
@@ -108,6 +108,8 @@ function handleMessage(message: WebSocketMessage) {
 		setGameState(message.payload);
 	} else if (message.action == 'set-player-choice') {
 		setPlayerChoice(message.payload);
+	} else if (message.action == 'set-choices') {
+		setChoicesMap(message.payload);
 	}
 
 	if (message.responseId) {
@@ -177,13 +179,19 @@ function setRound(round: Round) {
 	});
 }
 
-export function setGameState(gameState: GameState) {
-	const choicesMap: Map<number, Choice> = new Map();
-	if (gameState.choices) {
-		for (const c of Object.entries(gameState.choices)) {
-			choicesMap.set(Number(c[0]), c[1]);
+function convertChoicesObjecToMap(choices: object): ChoiceMap {
+	const map: Map<number, Choice> = new Map();
+	if (choices) {
+		for (const c of Object.entries(choices)) {
+			map.set(Number(c[0]), c[1]);
 		}
 	}
+
+	return map;
+}
+
+export function setGameState(gameState: GameState) {
+	const choicesMap = convertChoicesObjecToMap(gameState.choices);
 
 	gameState.choices = choicesMap;
 	gameStateStore.set(gameState);
@@ -196,6 +204,19 @@ export function setPlayerChoice({ player, choice }: { player: Player; choice: Ch
 		}
 
 		gameState.choices.set(player.id, choice);
+		return gameState;
+	});
+}
+
+export function setChoicesMap(choicesMap: object) {
+	const mapped = convertChoicesObjecToMap(choicesMap);
+
+	gameStateStore.update((gameState) => {
+		if (gameState === null) {
+			gameState = getBlankGameState();
+		}
+
+		gameState.choices = mapped;
 		return gameState;
 	});
 }

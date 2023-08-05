@@ -53,6 +53,7 @@ pub trait Database: Send {
 		player_id: u8,
 		choice: ChoiceOption,
 	) -> Result<Choice>;
+	fn mark_choice_lie(&self, choice_id: u8, lie: bool) -> Result<()>;
 
 	fn get_choices_by_round_id(&self, round_id: u8) -> Result<ChoicesMap>;
 

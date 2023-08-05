@@ -40,7 +40,10 @@
 		return count;
 	}
 
-	$: choices = getChoices(get(gameStateStore));
+	let choices: PlayerChoices = { a: [], b: [] };
+	gameStateStore.subscribe((gs) => {
+		choices = getChoices(gs);
+	});
 </script>
 
 <aside class={$$restProps.class || ''}>

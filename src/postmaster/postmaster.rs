@@ -12,14 +12,14 @@ use tokio_tungstenite::{
 	WebSocketStream,
 };
 
-use crate::gamemaster::types::{ChoiceOption, Player, Round};
+use crate::gamemaster::types::{Choice, ChoiceOption, MarkChoiceLie, Player, Round};
 
 use super::{
 	json::{
 		make_json_active_players, make_json_game_state, make_json_not_okay_response,
 		make_json_okay_response, make_json_organizer_identity_response, make_json_player_choice,
-		make_json_player_identity_response, make_json_round, make_json_updated_player,
-		parse_message,
+		make_json_player_identity_response, make_json_round, make_json_updated_choices,
+		make_json_updated_player, parse_message,
 	},
 	types::{
 		InternalMessage, InternalMessageAction, ResponseIdentifier, WebSocketMessage,
@@ -132,8 +132,11 @@ fn handle_message(gmcs: &Sender<InternalMessage>, address: SocketAddr, message: 
 		WebSocketMessageAction::SetRound(round) => {
 			set_round(gmcs, address, message.response_id, round);
 		}
-		WebSocketMessageAction::SetChoice(choice) => {
-			set_choice(gmcs, address, message.response_id, choice);
+		WebSocketMessageAction::MarkChoiceLie(mark) => {
+			mark_choice_lie(gmcs, address, message.response_id, mark);
+		}
+		WebSocketMessageAction::SetChoiceOption(option) => {
+			set_choice_option(gmcs, address, message.response_id, option);
 		}
 		WebSocketMessageAction::SetPlayer(player) => {
 			set_player(gmcs, address, message.response_id, player)
@@ -172,6 +175,9 @@ async fn forward_message(
 		}
 		InternalMessageAction::ResponseRound(round) => {
 			make_json_round(internal_message.response_id, round)
+		}
+		InternalMessageAction::ResponseUpdatedChoices(choices_map) => {
+			make_json_updated_choices(internal_message.response_id, choices_map)
 		}
 		_ => return Ok(()),
 	};
@@ -254,14 +260,31 @@ fn set_round(
 		.expect("Could not send request to GM for setting round");
 }
 
-fn set_choice(
+fn set_choice_option(
 	sender: &Sender<InternalMessage>,
 	address: SocketAddr,
 	response_id: ResponseIdentifier,
-	choice: ChoiceOption,
+	option: ChoiceOption,
 ) {
 	let internal_message = InternalMessage {
-		payload: InternalMessageAction::SetChoice(address, choice),
+		payload: InternalMessageAction::SetChoiceOption(address, option),
+		response_id,
+		..Default::default()
+	};
+
+	sender
+		.send(internal_message)
+		.expect("Could not send request to GM for setting choice");
+}
+
+fn mark_choice_lie(
+	sender: &Sender<InternalMessage>,
+	address: SocketAddr,
+	response_id: ResponseIdentifier,
+	mark: MarkChoiceLie,
+) {
+	let internal_message = InternalMessage {
+		payload: InternalMessageAction::MarkChoiceLie(address, mark),
 		response_id,
 		..Default::default()
 	};
