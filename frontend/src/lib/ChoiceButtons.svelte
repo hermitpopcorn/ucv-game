@@ -8,6 +8,7 @@
 	export let fixed = false;
 	export let disabled = true;
 	export let selected: 'a' | 'b' | undefined;
+	export let interactable = false;
 
 	let baseButtonClass = 'w-full text-white font-bold py-2 px-4 border-b-4 rounded ';
 	let greenButtonClass = 'bg-green-600 border-green-800';
@@ -59,6 +60,10 @@
 	$: buttonBClass = getButtonClass('b', selected, fixed, disabled);
 
 	function confirmChoice(choice: 'a' | 'b') {
+		if (!interactable) {
+			return;
+		}
+
 		if (fixed || disabled) {
 			return;
 		}
@@ -103,15 +108,17 @@
 			</div>
 		</button>
 	</div>
-	<div class="w-full text-center text-sm">
-		{#if disabled}
-			You are not allowed to vote on this round.
-		{:else if selected == null && !fixed}
-			Click one of the buttons twice to make your choice.
-		{:else if selected != null && !fixed}
-			Click the button one more time to finalize.
-		{:else if selected != null && fixed}
-			You've chosen to pick option {selected.toUpperCase()}!
-		{/if}
-	</div>
+	{#if interactable}
+		<div class="w-full text-center text-sm">
+			{#if disabled}
+				You are not allowed to vote on this round.
+			{:else if selected == null && !fixed}
+				Click one of the buttons twice to make your choice.
+			{:else if selected != null && !fixed}
+				Click the button one more time to finalize.
+			{:else if selected != null && fixed}
+				You've chosen to pick option {selected.toUpperCase()}!
+			{/if}
+		</div>
+	{/if}
 </div>

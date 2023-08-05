@@ -86,6 +86,7 @@
 								fixed={voteFixed}
 								disabled={!($playerStore?.canVote ?? false)}
 								selected={voteSelected}
+								interactable={$gameStateStore.round.state == 'voting-time'}
 								on:finalized={finalizeVote}
 							/>
 						{/if}
