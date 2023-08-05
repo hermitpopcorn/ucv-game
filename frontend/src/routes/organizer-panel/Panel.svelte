@@ -7,6 +7,7 @@
 	import type { Round, RoundState } from '$base/types';
 	import { updateRound } from '$base/organizer';
 	import PlayerList from './PlayerList.svelte';
+	import VotesList from './VotesList.svelte';
 	import Spinner from '$base/lib/Spinner.svelte';
 
 	let refreshingGameState = false;
@@ -121,6 +122,7 @@
 		</article>
 	</div>
 	<div class="flex flex-col w-full box-border items-center" style="flex: 0 0 20%">
-		<PlayerList class="border-4 p-4" />
+		<PlayerList class="border-4 p-4 mb-4" />
+		<VotesList class="border-4 p-4 text-center" />
 	</div>
 </section>
