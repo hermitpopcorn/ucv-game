@@ -13,6 +13,7 @@ pub enum InternalMessageAction {
 	ResponseNotOkay(String),
 	ResponsePlayerIdentity(Player),
 	ResponseActivePlayers(Vec<Player>),
+	ResponseUpdatedPlayer(Player),
 	ResponseGameState(GameState),
 	ResponseRound(Round),
 
@@ -29,6 +30,7 @@ pub enum InternalMessageAction {
 
 	RegisterOrganizer(SocketAddr, String),
 	SetRound(SocketAddr, Round),
+	SetPlayer(SocketAddr, Player),
 }
 
 #[derive(Debug, Clone)]
@@ -53,6 +55,7 @@ pub enum WebSocketMessageAction {
 	RetrieveGameState(),
 	SetRound(Round),
 	SetChoice(ChoiceOption),
+	SetPlayer(Player),
 }
 
 #[derive(Debug, Clone)]

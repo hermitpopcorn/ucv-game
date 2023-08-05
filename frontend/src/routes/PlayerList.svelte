@@ -1,5 +1,14 @@
 <script lang="ts">
 	import { gameState } from '$base/stores';
+	import type { Player } from '$base/types';
+
+	function getDisplayClass(player: Player): string {
+		if (player.canVote == false) {
+			return 'text-gray-400';
+		}
+
+		return '';
+	}
 </script>
 
 <aside class={$$restProps.class || ''}>
@@ -7,7 +16,7 @@
 	<ul class="flex flex-wrap gap-4 justify-center">
 		{#if $gameState?.players}
 			{#each $gameState.players as player}
-				<li class="flex flex-col items-center">
+				<li class={'flex flex-col items-center ' + getDisplayClass(player)}>
 					<h3 class="text-sm">{player.name}</h3>
 					<h4 class="text-xs">{player.points} P</h4>
 				</li>

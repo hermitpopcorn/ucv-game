@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { togglePlayerCanVote } from '$base/organizer';
 	import { gameState } from '$base/stores';
 	import type { Choice, Player } from '$base/types';
 
@@ -26,6 +27,17 @@
 			});
 		}
 	});
+
+	let working = false;
+	async function toggleCanVote(player: Player) {
+		if (working) {
+			return;
+		}
+
+		working = true;
+		await togglePlayerCanVote(player, !player.canVote);
+		working = false;
+	}
 </script>
 
 <aside class={$$restProps.class || ''}>
@@ -36,7 +48,10 @@
 				<li class="flex flex-col items-center">
 					<h3 class="text-sm">{data.player.name}</h3>
 					<h4 class="text-xs">{data.player.points} P</h4>
-					<button class="text-xs bg-blue-400 hover:bg-blue-600 text-white font-bold px-2 rounded">
+					<button
+						class="text-xs bg-blue-400 hover:bg-blue-600 text-white font-bold px-2 rounded"
+						on:click={() => toggleCanVote(data.player)}
+					>
 						Can Vote
 						{#if data.player.canVote}
 							✔️

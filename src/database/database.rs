@@ -9,9 +9,17 @@ pub type DatabaseAccess = Arc<Mutex<dyn Database>>;
 pub trait Database: Send {
 	fn initialize_database(&self) -> Result<()>;
 
+	fn find_player_by_id(&self, id: u8) -> Result<Option<Player>>;
 	fn find_player_by_name(&self, name: &str) -> Result<Option<Player>>;
 	fn create_player(&self, name: &str) -> Result<Player>;
 	fn find_or_create_player(&self, name: &str) -> Result<Player>;
+	fn update_player(
+		&self,
+		id: u8,
+		name: Option<&str>,
+		points: Option<usize>,
+		can_vote: Option<bool>,
+	) -> Result<Player>;
 
 	fn get_active_round(&self) -> Result<Option<Round>>;
 	fn find_round_by_number_and_phase(&self, number: u8, phase: u8) -> Result<Option<Round>>;

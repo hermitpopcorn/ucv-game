@@ -12,13 +12,14 @@ use tokio_tungstenite::{
 	WebSocketStream,
 };
 
-use crate::gamemaster::types::{ChoiceOption, Round};
+use crate::gamemaster::types::{ChoiceOption, Player, Round};
 
 use super::{
 	json::{
 		make_json_active_players, make_json_game_state, make_json_not_okay_response,
 		make_json_okay_response, make_json_organizer_identity_response, make_json_player_choice,
-		make_json_player_identity_response, make_json_round, parse_message,
+		make_json_player_identity_response, make_json_round, make_json_updated_player,
+		parse_message,
 	},
 	types::{
 		InternalMessage, InternalMessageAction, ResponseIdentifier, WebSocketMessage,
@@ -134,6 +135,9 @@ fn handle_message(gmcs: &Sender<InternalMessage>, address: SocketAddr, message: 
 		WebSocketMessageAction::SetChoice(choice) => {
 			set_choice(gmcs, address, message.response_id, choice);
 		}
+		WebSocketMessageAction::SetPlayer(player) => {
+			set_player(gmcs, address, message.response_id, player)
+		}
 	};
 }
 
@@ -156,6 +160,9 @@ async fn forward_message(
 		}
 		InternalMessageAction::ResponseActivePlayers(active_players) => {
 			make_json_active_players(internal_message.response_id, active_players)
+		}
+		InternalMessageAction::ResponseUpdatedPlayer(player) => {
+			make_json_updated_player(internal_message.response_id, player)
 		}
 		InternalMessageAction::ResponseGameState(game_state) => {
 			make_json_game_state(internal_message.response_id, game_state)
@@ -255,6 +262,23 @@ fn set_choice(
 ) {
 	let internal_message = InternalMessage {
 		payload: InternalMessageAction::SetChoice(address, choice),
+		response_id,
+		..Default::default()
+	};
+
+	sender
+		.send(internal_message)
+		.expect("Could not send request to GM for setting choice");
+}
+
+fn set_player(
+	sender: &Sender<InternalMessage>,
+	address: SocketAddr,
+	response_id: ResponseIdentifier,
+	player: Player,
+) {
+	let internal_message = InternalMessage {
+		payload: InternalMessageAction::SetPlayer(address, player),
 		response_id,
 		..Default::default()
 	};

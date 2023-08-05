@@ -4,7 +4,7 @@ import { get } from 'svelte/store';
 import { v4 as generateUuid } from 'uuid';
 import { websocketConnection } from '$base/stores';
 import { gameState as gameStateStore } from '$base/stores';
-import { setPlayer } from '$base/player';
+import { setPlayer, setPlayerIfSelf } from '$base/player';
 import { setOrganizer } from '$base/organizer';
 
 import type { Choice, GameState, Player, Round, WebSocketMessage } from '$base/types';
@@ -100,6 +100,8 @@ function handleMessage(message: WebSocketMessage) {
 		setOrganizer(message.payload);
 	} else if (message.action == 'refresh-active-players-list') {
 		setActivePlayers(message.payload);
+	} else if (message.action == 'update-player') {
+		updatePlayer(message.payload);
 	} else if (message.action == 'set-round') {
 		setRound(message.payload);
 	} else if (message.action == 'set-game-state') {
@@ -145,6 +147,23 @@ export function setActivePlayers(activePlayersList: Array<Player>) {
 		gameState.players = activePlayersList;
 		return gameState;
 	});
+}
+
+export function updatePlayer(player: Player) {
+	gameStateStore.update((gameState) => {
+		if (gameState === null) {
+			gameState = getBlankGameState();
+		}
+
+		for (let i = 0; i < gameState.players.length; i++) {
+			if (gameState.players[i].id == player.id) {
+				gameState.players[i] = player;
+			}
+		}
+		return gameState;
+	});
+
+	setPlayerIfSelf(player);
 }
 
 function setRound(round: Round) {

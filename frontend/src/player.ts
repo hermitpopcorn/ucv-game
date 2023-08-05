@@ -1,11 +1,22 @@
 import { v4 as generateUuid } from 'uuid';
 import { getWebsocketConnection, pushResponseStack } from './game';
 import { player as playerStore } from '$base/stores';
-
+import { get } from 'svelte/store';
 import type { Player } from '$base/types';
 
 export function setPlayer(player: Player) {
 	playerStore.set(player);
+}
+
+export function setPlayerIfSelf(player: Player) {
+	if (!get(playerStore)) {
+		return;
+	}
+	if (get(playerStore)?.id !== player.id) {
+		return;
+	}
+
+	setPlayer(player);
 }
 
 export function login(name: string): Promise<void> {

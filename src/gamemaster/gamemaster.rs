@@ -2,7 +2,7 @@ use std::{collections::HashMap, net::SocketAddr};
 
 use anyhow::Result;
 use crossbeam::channel::{Receiver, Sender};
-use log::{debug, warn};
+use log::{debug, error, warn};
 
 use crate::{
 	database::database::DatabaseAccess,
@@ -74,6 +74,15 @@ pub async fn start_gamemaster(
 					address,
 					received_message.response_id,
 					choice,
+				);
+			}
+			InternalMessageAction::SetPlayer(address, player) => {
+				set_player(
+					&database,
+					&clients,
+					address,
+					received_message.response_id,
+					player,
 				);
 			}
 			_ => continue,
@@ -236,6 +245,19 @@ fn announce_active_players(clients: &ClientsMap) {
 		});
 		if send.is_err() {
 			warn!("Could not announce list of active players to: {}", address);
+		}
+	}
+}
+
+fn announce_updated_player(clients: &ClientsMap, player: Player) {
+	for (address, client) in clients {
+		let ics = &client.individual_channel_sender;
+		let send = ics.send(InternalMessage {
+			payload: InternalMessageAction::ResponseUpdatedPlayer(player.clone()),
+			..Default::default()
+		});
+		if send.is_err() {
+			warn!("Could not announce updated player to: {}", address);
 		}
 	}
 }
@@ -520,4 +542,37 @@ fn announce_choice_to_organizers(clients: &ClientsMap, player: Player, choice: C
 			warn!("Could not announce list of active players to: {}", address);
 		}
 	}
+}
+
+fn set_player(
+	database: &DatabaseAccess,
+	clients: &ClientsMap,
+	address: SocketAddr,
+	response_id: ResponseIdentifier,
+	player: Player,
+) {
+	debug!("===== Set player");
+
+	if !is_organizer(clients, &address) {
+		warn!("Set player request came from a non-organizer");
+		return;
+	}
+
+	let db_access = database.lock().expect("Could not get access to database");
+	let updated_player = db_access.update_player(player.id, None, player.points, player.can_vote);
+	if updated_player.is_err() {
+		error!("Updating player error: {}", updated_player.unwrap_err());
+		return;
+	}
+	let updated_player = updated_player.unwrap();
+
+	announce_updated_player(clients, updated_player);
+
+	let ics = get_individual_channel_sender(&clients, &address);
+	ics.send(InternalMessage {
+		payload: InternalMessageAction::ResponseOkay,
+		response_id,
+		..Default::default()
+	})
+	.expect("Could not send okay response");
 }

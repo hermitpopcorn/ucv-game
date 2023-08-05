@@ -1,6 +1,7 @@
 use std::{collections::HashMap, fmt::Error};
 
 use anyhow::{anyhow, bail, Result};
+use log::debug;
 use rusqlite::{
 	params,
 	types::{FromSql, FromSqlError},
@@ -105,6 +106,25 @@ impl Database for SqliteDatabase {
 		Ok(())
 	}
 
+	fn find_player_by_id(&self, id: u8) -> Result<Option<Player>> {
+		let mut statement = self
+			.connection
+			.prepare("SELECT id, name, points, can_vote FROM Players WHERE id = ?1")?;
+
+		let find = statement
+			.query_row(params![id], |row| {
+				Ok(Player {
+					id: row.get(0)?,
+					name: row.get(1)?,
+					points: Some(row.get(2)?),
+					can_vote: Some(row.get(3)?),
+				})
+			})
+			.optional()?;
+
+		Ok(find)
+	}
+
 	fn find_player_by_name(&self, name: &str) -> Result<Option<Player>> {
 		let mut statement = self
 			.connection
@@ -143,6 +163,51 @@ impl Database for SqliteDatabase {
 			Some(player) => Ok(player),
 			None => self.create_player(name),
 		}
+	}
+
+	fn update_player(
+		&self,
+		id: u8,
+		name: Option<&str>,
+		points: Option<usize>,
+		can_vote: Option<bool>,
+	) -> Result<Player> {
+		let mut columns: Vec<&str> = vec![];
+
+		if points.is_some() {
+			debug!("POINTS");
+			columns.push("points = :points");
+		}
+		if can_vote.is_some() {
+			debug!("CV");
+			columns.push("can_vote = :canvote");
+		}
+
+		let columns = columns.join(", ");
+
+		let mut statement = self
+			.connection
+			.prepare(format!("UPDATE Players SET {} WHERE id = :id", columns).as_str())?;
+
+		let get_index = statement.parameter_index(":points")?;
+		if let Some(points_index) = get_index {
+			debug!("xPOINTS");
+			statement.raw_bind_parameter(points_index, points.unwrap())?;
+		}
+		let get_index = statement.parameter_index(":canvote")?;
+		if let Some(can_vote_index) = get_index {
+			debug!("xCV");
+			statement.raw_bind_parameter(can_vote_index, can_vote.unwrap())?;
+		}
+
+		let get_index = statement.parameter_index(":id")?;
+		statement.raw_bind_parameter(get_index.unwrap(), id)?;
+		let update = statement.raw_execute()?;
+
+		if update != 1 {
+			bail!("Could not update the player");
+		}
+		Ok(self.find_player_by_id(id)?.unwrap())
 	}
 
 	fn get_active_round(&self) -> Result<Option<Round>> {

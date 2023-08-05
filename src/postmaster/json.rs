@@ -1,4 +1,9 @@
-use serde::{ser::SerializeStruct, Serialize};
+use log::debug;
+use serde::{
+	de::{self, MapAccess},
+	ser::SerializeStruct,
+	Serialize,
+};
 use serde_derive::Deserialize;
 use serde_json::json;
 
@@ -19,6 +24,67 @@ impl Serialize for Player {
 		state.serialize_field("points", &self.points)?;
 		state.serialize_field("canVote", &self.can_vote)?;
 		state.end()
+	}
+}
+
+impl<'de> serde::de::Deserialize<'de> for Player {
+	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+	where
+		D: serde::Deserializer<'de>,
+	{
+		struct PlayerVisitor;
+
+		impl<'de> serde::de::Visitor<'de> for PlayerVisitor {
+			type Value = Player;
+
+			fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+				formatter.write_str("a Player object")
+			}
+
+			fn visit_map<V>(self, mut map: V) -> Result<Self::Value, V::Error>
+			where
+				V: MapAccess<'de>,
+			{
+				let mut id: Option<u8> = None;
+				let mut name: Option<String> = None;
+				let mut points: Option<usize> = None;
+				let mut can_vote: Option<bool> = None;
+
+				while let Some(key) = map.next_key()? {
+					match key {
+						"id" => {
+							id = Some(map.next_value()?);
+						}
+						"name" => {
+							name = Some(map.next_value()?);
+						}
+						"points" => {
+							points = Some(map.next_value()?);
+						}
+						"canVote" => {
+							can_vote = Some(map.next_value()?);
+						}
+						_ => map.next_value()?,
+					}
+				}
+
+				if id.is_none() {
+					return Err(de::Error::missing_field("id"));
+				}
+				if name.is_none() {
+					name = Some("".to_owned());
+				}
+
+				Ok(Player {
+					id: id.unwrap(),
+					name: name.unwrap(),
+					points,
+					can_vote,
+				})
+			}
+		}
+
+		deserializer.deserialize_map(PlayerVisitor)
 	}
 }
 
@@ -209,6 +275,11 @@ struct JsonSetChoicePayload {
 	payload: ChoiceOption,
 }
 
+#[derive(Deserialize, Debug)]
+struct JsonSetPlayerPayload {
+	payload: Player,
+}
+
 pub fn parse_message(message: String) -> Option<WebSocketMessage> {
 	let parse = serde_json::from_str(&message);
 	if parse.is_err() {
@@ -271,6 +342,19 @@ pub fn parse_message(message: String) -> Option<WebSocketMessage> {
 				action: WebSocketMessageAction::SetChoice(parsed_payload.payload),
 			});
 		}
+		"set-player-can-vote" => {
+			let parsed_payload: Result<JsonSetPlayerPayload, _> = serde_json::from_str(&message);
+			if parsed_payload.is_err() {
+				debug!("argh {}", parsed_payload.unwrap_err());
+				return None;
+			}
+			let parsed_payload = parsed_payload.unwrap();
+
+			return Some(WebSocketMessage {
+				response_id: json.response_id,
+				action: WebSocketMessageAction::SetPlayer(parsed_payload.payload),
+			});
+		}
 		_ => return None,
 	}
 }
@@ -306,6 +390,17 @@ pub fn make_json_active_players(
 		"responseId": response_id,
 		"action": "refresh-active-players-list",
 		"payload": active_players,
+	})
+}
+
+pub fn make_json_updated_player(
+	response_id: ResponseIdentifier,
+	updated_player: Player,
+) -> serde_json::Value {
+	json!({
+		"responseId": response_id,
+		"action": "update-player",
+		"payload": updated_player,
 	})
 }
 
