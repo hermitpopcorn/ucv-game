@@ -1,4 +1,3 @@
-use log::debug;
 use serde::{
 	de::{self, MapAccess},
 	ser::SerializeStruct,
@@ -121,7 +120,6 @@ impl<'de> serde::de::Deserialize<'de> for MarkChoiceLie {
 				let mut lie: Option<bool> = None;
 
 				while let Some(key) = map.next_key()? {
-					debug!("HELL: {}", key);
 					match key {
 						"id" => {
 							id = Some(map.next_value()?);
@@ -297,6 +295,7 @@ struct JsonMessagePayload {
 	payload: Option<String>,
 }
 
+#[allow(non_snake_case)]
 #[derive(Deserialize, Debug)]
 struct JsonRound {
 	id: u8,
@@ -400,7 +399,6 @@ pub fn parse_message(message: String) -> Option<WebSocketMessage> {
 		"set-vote-is-lie" => {
 			let parsed_payload: Result<JsonMarkChoicePayload, _> = serde_json::from_str(&message);
 			if parsed_payload.is_err() {
-				debug!("argh {}", parsed_payload.unwrap_err());
 				return None;
 			}
 			let parsed_payload = parsed_payload.unwrap();
@@ -439,7 +437,6 @@ pub fn parse_message(message: String) -> Option<WebSocketMessage> {
 			let parsed_payload: Result<JsonSetPlayerPointsPayload, _> =
 				serde_json::from_str(&message);
 			if parsed_payload.is_err() {
-				debug!("argh {}", parsed_payload.unwrap_err());
 				return None;
 			}
 			let parsed_payload = parsed_payload.unwrap();

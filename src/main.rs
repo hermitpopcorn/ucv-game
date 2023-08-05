@@ -28,8 +28,6 @@ async fn main() {
 	// Create crossbeam channels for communicating with gamemaster
 	// Player <-> GM
 	let (gm_channel_sender, gm_channel_receiver) = unbounded::<InternalMessage>();
-	// Organizer <-> GM
-	let (gm_channel_sender, gm_channel_receiver) = unbounded::<InternalMessage>();
 
 	// Run gamemaster in new thread
 	let gamemaster_handle = spawn(start_gamemaster(

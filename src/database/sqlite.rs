@@ -1,7 +1,6 @@
 use std::{collections::HashMap, fmt::Error};
 
 use anyhow::{anyhow, bail, Result};
-use log::debug;
 use rusqlite::{
 	params,
 	types::{FromSql, FromSqlError},
@@ -174,12 +173,13 @@ impl Database for SqliteDatabase {
 	) -> Result<Player> {
 		let mut columns: Vec<&str> = vec![];
 
+		if name.is_some_and(|name| name.len() > 0) {
+			columns.push("name = :name");
+		}
 		if points.is_some() {
-			debug!("POINTS");
 			columns.push("points = :points");
 		}
 		if can_vote.is_some() {
-			debug!("CV");
 			columns.push("can_vote = :canvote");
 		}
 
@@ -189,14 +189,16 @@ impl Database for SqliteDatabase {
 			.connection
 			.prepare(format!("UPDATE Players SET {} WHERE id = :id", columns).as_str())?;
 
+		let get_index = statement.parameter_index(":name")?;
+		if let Some(name_index) = get_index {
+			statement.raw_bind_parameter(name_index, name.unwrap())?;
+		}
 		let get_index = statement.parameter_index(":points")?;
 		if let Some(points_index) = get_index {
-			debug!("xPOINTS");
 			statement.raw_bind_parameter(points_index, points.unwrap())?;
 		}
 		let get_index = statement.parameter_index(":canvote")?;
 		if let Some(can_vote_index) = get_index {
-			debug!("xCV");
 			statement.raw_bind_parameter(can_vote_index, can_vote.unwrap())?;
 		}
 
@@ -309,7 +311,7 @@ impl Database for SqliteDatabase {
 		choice_a: Option<String>,
 		choice_b: Option<String>,
 	) -> Result<Round> {
-		let mut round = self.find_round_by_number_and_phase(number, phase)?;
+		let round = self.find_round_by_number_and_phase(number, phase)?;
 		if round.is_none() {
 			bail!("Could not find round");
 		}

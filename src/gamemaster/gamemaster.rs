@@ -2,7 +2,7 @@ use std::{collections::HashMap, net::SocketAddr};
 
 use anyhow::{bail, Result};
 use crossbeam::channel::{Receiver, Sender};
-use log::{debug, error, warn};
+use log::{debug, error, info, warn};
 
 use crate::{
 	database::database::DatabaseAccess,
@@ -229,7 +229,7 @@ fn register_active_player(
 		c.status = ClientStatus::Registered;
 		c.player = Some(player.clone());
 	});
-	debug!("Connected players updated");
+	info!("Connected players updated");
 
 	let ics = get_individual_channel_sender(&clients, &address);
 
@@ -361,7 +361,7 @@ fn compile_choices(database: &DatabaseAccess, round: &Round) -> ChoicesMap {
 
 fn compile_game_state(database: &DatabaseAccess, clients: &ClientsMap) -> GameState {
 	let players = get_players(clients);
-	let mut round: Option<Round> = None;
+	let round: Option<Round>;
 	let mut choices: ChoicesMap = HashMap::new();
 
 	{

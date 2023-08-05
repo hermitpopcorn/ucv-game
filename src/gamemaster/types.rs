@@ -77,15 +77,6 @@ pub enum ChoiceOption {
 	ChoiceB,
 }
 
-impl ChoiceOption {
-	fn as_str(&self) -> &'static str {
-		match self {
-			ChoiceOption::ChoiceA => "a",
-			ChoiceOption::ChoiceB => "b",
-		}
-	}
-}
-
 #[derive(Debug, Clone)]
 pub struct Choice {
 	pub id: u8,
