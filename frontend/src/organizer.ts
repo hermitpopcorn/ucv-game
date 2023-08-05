@@ -101,3 +101,32 @@ export function toggleVoteIsLie(choice: Choice, newLieStatus: boolean): Promise<
 		});
 	});
 }
+
+export function changePlayerPoint(player: Player, amount: number): Promise<void> {
+	const updatingToast = toast.push('Updating points...', { initial: 0 });
+	player.points = (player.points ?? 0) + amount;
+	if (player.points < 0) {
+		player.points = 0;
+	}
+
+	return new Promise((resolve) => {
+		const socket = getWebsocketConnection();
+		const responseId = generateUuid();
+		socket.send(
+			JSON.stringify({
+				responseId,
+				action: 'set-player-points',
+				payload: player,
+			}),
+		);
+
+		pushResponseStack(responseId, () => {
+			toast.pop(updatingToast);
+			toast.push('Points updated.', {
+				classes: ['toast success'],
+			});
+
+			resolve();
+		});
+	});
+}

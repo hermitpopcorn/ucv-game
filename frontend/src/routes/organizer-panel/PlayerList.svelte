@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { togglePlayerCanVote, toggleVoteIsLie } from '$base/organizer';
+	import { changePlayerPoint, togglePlayerCanVote, toggleVoteIsLie } from '$base/organizer';
 	import { gameState } from '$base/stores';
 	import type { Choice, Player } from '$base/types';
 
@@ -52,6 +52,13 @@
 		await toggleVoteIsLie(choice, !choice.lie);
 		working = false;
 	}
+
+	let pointChangeAmount = 1;
+	async function changePoint(player: Player, point: number) {
+		working = true;
+		await changePlayerPoint(player, point);
+		working = false;
+	}
 </script>
 
 <aside class={$$restProps.class || ''}>
@@ -61,7 +68,18 @@
 			{#each activePlayersData as data (data.player.id)}
 				<li class="flex flex-col items-center">
 					<h3 class="text-sm">{data.player.name}</h3>
-					<h4 class="text-xs">{data.player.points} P</h4>
+					<h4 class="text-sm">
+						{data.player.points} P
+						<input type="number" bind:value={pointChangeAmount} min="1" max="9" class="w-8" />
+						<button
+							class="text-xs bg-blue-400 hover:bg-blue-600 text-white font-bold px-2 rounded"
+							on:click={() => changePoint(data.player, pointChangeAmount * 1)}>+</button
+						>
+						<button
+							class="text-xs bg-blue-400 hover:bg-blue-600 text-white font-bold px-2 rounded"
+							on:click={() => changePoint(data.player, pointChangeAmount * -1)}>-</button
+						>
+					</h4>
 					<button
 						class="text-xs bg-blue-400 hover:bg-blue-600 text-white font-bold px-2 rounded"
 						on:click={() => toggleCanVote(data.player)}

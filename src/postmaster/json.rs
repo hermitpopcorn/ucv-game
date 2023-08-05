@@ -342,6 +342,11 @@ struct JsonMarkChoicePayload {
 	payload: MarkChoiceLie,
 }
 
+#[derive(Deserialize, Debug)]
+struct JsonSetPlayerPointsPayload {
+	payload: Player,
+}
+
 pub fn parse_message(message: String) -> Option<WebSocketMessage> {
 	let parse = serde_json::from_str(&message);
 	if parse.is_err() {
@@ -421,6 +426,20 @@ pub fn parse_message(message: String) -> Option<WebSocketMessage> {
 		"set-player-can-vote" => {
 			let parsed_payload: Result<JsonSetPlayerPayload, _> = serde_json::from_str(&message);
 			if parsed_payload.is_err() {
+				return None;
+			}
+			let parsed_payload = parsed_payload.unwrap();
+
+			return Some(WebSocketMessage {
+				response_id: json.response_id,
+				action: WebSocketMessageAction::SetPlayer(parsed_payload.payload),
+			});
+		}
+		"set-player-points" => {
+			let parsed_payload: Result<JsonSetPlayerPointsPayload, _> =
+				serde_json::from_str(&message);
+			if parsed_payload.is_err() {
+				debug!("argh {}", parsed_payload.unwrap_err());
 				return None;
 			}
 			let parsed_payload = parsed_payload.unwrap();
