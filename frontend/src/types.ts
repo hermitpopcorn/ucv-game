@@ -9,8 +9,10 @@ export type WebSocketMessage = {
 	payload: any;
 };
 
+export type PlayerID = number;
+
 export type Player = {
-	id: number;
+	id: PlayerID;
 	name: string;
 	points: number;
 	canVote?: boolean;
@@ -50,8 +52,10 @@ export type Choice = {
 	lie: boolean;
 };
 
+export type ChoiceMap = Map<PlayerID, Choice>;
+
 export type GameState = {
 	round: Round | null;
 	players: ActivePlayers;
-	choices: Map<number, Choice>;
+	choices: ChoiceMap;
 };
