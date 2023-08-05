@@ -33,7 +33,7 @@ async fn main() {
 		database_arc.clone(),
 	));
 
-	let addr = "127.0.0.1:9002";
+	let addr = "0.0.0.0:9002";
 	let listener = TcpListener::bind(&addr).await.expect("Can't listen");
 	info!("Listening on: {}", addr);
 
