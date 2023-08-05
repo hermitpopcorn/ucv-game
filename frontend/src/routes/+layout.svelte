@@ -4,10 +4,21 @@
 	import '$base/app.css';
 
 	import { onMount } from 'svelte';
-	import { player, websocketConnection } from '$base/stores';
+	import { browserEnv, player, websocketConnection } from '$base/stores';
 	import { connect } from '$base/game';
 
 	onMount(async () => {
+		var queryDict: Map<string, string> = new Map();
+		location.search
+			.substring(1)
+			.split('&')
+			.forEach(function (item) {
+				queryDict.set(item.split('=')[0], item.split('=')[1]);
+			});
+		if (queryDict.get('server')) {
+			browserEnv.set({ server: queryDict.get('server')! });
+		}
+
 		connect();
 	});
 </script>

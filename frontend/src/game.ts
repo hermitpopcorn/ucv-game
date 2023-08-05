@@ -2,7 +2,7 @@ import { PUBLIC_GAMESERVER_URL } from '$env/static/public';
 import { toast } from '@zerodevx/svelte-toast';
 import { get } from 'svelte/store';
 import { v4 as generateUuid } from 'uuid';
-import { websocketConnection } from '$base/stores';
+import { browserEnv, websocketConnection } from '$base/stores';
 import { gameState as gameStateStore } from '$base/stores';
 import { setPlayer, setPlayerIfSelf } from '$base/player';
 import { setOrganizer } from '$base/organizer';
@@ -57,7 +57,10 @@ export async function connect() {
 
 function connectWebsocket(): Promise<WebSocket> {
 	return new Promise((resolve, reject) => {
-		const socket = new WebSocket(PUBLIC_GAMESERVER_URL);
+		const defaultGameserverUrl = PUBLIC_GAMESERVER_URL;
+		const overrideServer = get(browserEnv).server;
+
+		const socket = new WebSocket('ws://' + (overrideServer ?? defaultGameserverUrl));
 
 		socket.onerror = () => {
 			console.error('WebSocket connection errored.');
