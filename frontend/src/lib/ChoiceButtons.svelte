@@ -7,6 +7,7 @@
 	export let choiceB = '';
 	export let fixed = false;
 	export let disabled = true;
+	export let selected: 'a' | 'b' | undefined;
 
 	let baseButtonClass = 'w-full text-white font-bold py-2 px-4 border-b-4 rounded ';
 	let greenButtonClass = 'bg-green-600 border-green-800';
@@ -19,7 +20,7 @@
 
 	function getButtonClass(
 		which: 'a' | 'b',
-		selectedChoice: 'a' | 'b' | null,
+		selectedChoice: 'a' | 'b' | undefined,
 		isSelectionFixed: boolean,
 		isDisabled: boolean,
 	): string {
@@ -57,7 +58,6 @@
 	$: buttonAClass = getButtonClass('a', selected, fixed, disabled);
 	$: buttonBClass = getButtonClass('b', selected, fixed, disabled);
 
-	let selected: null | 'a' | 'b' = null;
 	function confirmChoice(choice: 'a' | 'b') {
 		if (fixed || disabled) {
 			return;
