@@ -24,12 +24,20 @@
 
 <div class="flex flex-1 flex-col justify-center items-center">
 	{#if page === 'login'}
-		<div class="flex flex-col w-full" out:fade={{ duration: 90 }} in:fade={{ delay: 100 }}>
+		<div
+			class="flex flex-1 w-full justify-center"
+			out:fade={{ duration: 90 }}
+			in:fade={{ delay: 100 }}
+		>
 			<Login />
 		</div>
 	{/if}
 	{#if page === 'game'}
-		<div class="flex flex-col w-full" out:fade={{ duration: 90 }} in:fade={{ delay: 100 }}>
+		<div
+			class="flex flex-1 w-full justify-center"
+			out:fade={{ duration: 90 }}
+			in:fade={{ delay: 100 }}
+		>
 			<Game />
 		</div>
 	{/if}

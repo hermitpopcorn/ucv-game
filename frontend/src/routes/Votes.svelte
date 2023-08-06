@@ -61,8 +61,20 @@
 <table class="border-collapse text-center w-full table-fixed">
 	<thead>
 		<tr>
-			<th class="border-b-2 border-r-2 border-slate-300 p-2">A</th>
-			<th class="border-l-2 border-b-2 border-slate-300 p-2">B</th>
+			<th class="border-b-2 border-r-2 border-slate-300 p-2">
+				{#if $gameStateStore?.round}
+					A: {$gameStateStore.round.choiceA ?? '???'}
+				{:else}
+					A
+				{/if}
+			</th>
+			<th class="border-l-2 border-b-2 border-slate-300 p-2">
+				{#if $gameStateStore?.round}
+					B: {$gameStateStore.round.choiceB ?? '???'}
+				{:else}
+					B
+				{/if}
+			</th>
 		</tr>
 	</thead>
 	<tbody>

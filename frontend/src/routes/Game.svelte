@@ -9,6 +9,7 @@
 	import PlayerList from './PlayerList.svelte';
 	import { toast } from '@zerodevx/svelte-toast';
 	import Votes from './Votes.svelte';
+	import Results from './Results.svelte';
 
 	let refreshingGameState = false;
 	onMount(async () => {
@@ -96,6 +97,11 @@
 						{#if $gameStateStore.round.state == 'show-votes'}
 							<div class="flex items-center justify-center">
 								<Votes />
+							</div>
+						{/if}
+						{#if $gameStateStore.round.state == 'show-results'}
+							<div class="flex items-center justify-center">
+								<Results />
 							</div>
 						{/if}
 					{/if}
