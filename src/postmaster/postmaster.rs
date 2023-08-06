@@ -27,12 +27,11 @@ use super::{
 	},
 };
 
-pub async fn accept_connection(
-	peer: SocketAddr,
-	stream: TcpStream,
-	sender: Sender<InternalMessage>,
-) {
-	if let Err(e) = handle_connection(peer, stream, sender).await {
+pub fn accept_connection(peer: SocketAddr, stream: TcpStream, sender: Sender<InternalMessage>) {
+	if let Err(e) = tokio::runtime::Runtime::new()
+		.unwrap()
+		.block_on(handle_connection(peer, stream, sender))
+	{
 		match e {
 			TungsteniteError::ConnectionClosed
 			| TungsteniteError::Protocol(_)

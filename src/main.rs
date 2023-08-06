@@ -12,7 +12,7 @@ use futures_util::future;
 use gamemaster::gamemaster::start_gamemaster;
 use log::{info, warn};
 use postmaster::{postmaster::accept_connection, types::InternalMessage};
-use tokio::{net::TcpListener, spawn};
+use tokio::net::TcpListener;
 
 mod database;
 mod gamemaster;
@@ -32,7 +32,7 @@ async fn main() {
 	let (gm_channel_sender, gm_channel_receiver) = unbounded::<InternalMessage>();
 
 	// Run gamemaster in new thread
-	let gamemaster_handle = spawn(start_gamemaster(
+	let gamemaster_handle = tokio::spawn(start_gamemaster(
 		gm_channel_receiver.clone(),
 		database_arc.clone(),
 	));
@@ -47,7 +47,8 @@ async fn main() {
 				let peer = stream.peer_addr().expect("connected streams should have a peer address");
 				info!("Peer address: {}", peer);
 
-				spawn(accept_connection(peer, stream, gm_channel_sender.clone()));
+				let cloned_gm_channel_sender = gm_channel_sender.clone();
+				thread::spawn(move || { accept_connection(peer, stream, cloned_gm_channel_sender) });
 			},
 			gm_handle_finished = future::lazy(|_| gamemaster_handle.is_finished()) => {
 				if !gm_handle_finished {
