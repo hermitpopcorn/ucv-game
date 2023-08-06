@@ -52,7 +52,7 @@ async fn main() {
 			},
 			gm_handle_finished = future::lazy(|_| gamemaster_handle.is_finished()) => {
 				if !gm_handle_finished {
-					thread::sleep(Duration::from_millis(100));
+					thread::sleep(Duration::from_millis(50));
 					continue;
 				}
 

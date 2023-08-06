@@ -104,7 +104,7 @@ async fn handle_connection(
 			}
 			individual_channel_message = future::lazy(|_| individual_channel_receiver.try_recv()) => {
 				if individual_channel_message.is_err() {
-					thread::sleep(Duration::from_millis(100));
+					thread::sleep(Duration::from_millis(50));
 					continue;
 				}
 
