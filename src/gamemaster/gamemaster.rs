@@ -473,33 +473,40 @@ fn set_round(
 		.find_round_by_number_and_phase(round.number, round.phase)
 		.expect("Could not query database to find round");
 
+	let new_round;
 	let updated_round = match find_existing_round {
-		Some(db_round) => db_access
-			.update_round(
-				db_round.number,
-				db_round.phase,
-				Some(round.state),
-				Some(round.question),
-				Some(round.choice_a),
-				Some(round.choice_b),
-			)
-			.expect("Could not update round"),
-		None => db_access
-			.create_round(
-				round.number,
-				round.phase,
-				round.state,
-				round.question,
-				round.choice_a,
-				round.choice_b,
-			)
-			.expect("Could not create round"),
+		Some(db_round) => {
+			new_round = false;
+			db_access
+				.update_round(
+					db_round.number,
+					db_round.phase,
+					Some(round.state),
+					Some(round.question),
+					Some(round.choice_a),
+					Some(round.choice_b),
+				)
+				.expect("Could not update round")
+		}
+		None => {
+			new_round = true;
+			db_access
+				.create_round(
+					round.number,
+					round.phase,
+					round.state,
+					round.question,
+					round.choice_a,
+					round.choice_b,
+				)
+				.expect("Could not create round")
+		}
 	};
 
 	announce_round(database, clients, Some(updated_round.clone()));
 	drop(db_access);
 
-	if updated_round.state == RoundState::ShowVotes {
+	if new_round || updated_round.state == RoundState::ShowVotes {
 		announce_updated_choices(clients, compile_choices(database, &updated_round));
 	}
 
