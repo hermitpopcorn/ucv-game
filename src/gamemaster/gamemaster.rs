@@ -506,7 +506,12 @@ fn set_round(
 	announce_round(database, clients, Some(updated_round.clone()));
 	drop(db_access);
 
-	if new_round || updated_round.state == RoundState::ShowVotes {
+	if new_round
+		|| updated_round.state == RoundState::ShowVotes
+		|| updated_round.state == RoundState::VotingTime
+		|| updated_round.state == RoundState::VotingLocked
+		|| updated_round.state == RoundState::ShowResults
+	{
 		announce_updated_choices(clients, compile_choices(database, &updated_round));
 	}
 
