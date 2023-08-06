@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { getGameState } from '$base/game';
-	import { gameState, gameState as gameStateStore, player as playerStore } from '$base/stores';
+	import { gameState as gameStateStore, player as playerStore } from '$base/stores';
 	import { get } from 'svelte/store';
 	import { setChoice } from '$base/player';
 	import ChoiceButtons from '$base/lib/ChoiceButtons.svelte';
@@ -66,7 +66,7 @@
 		</div>
 	{/if}
 
-	<div class="flex flex-col w-full box-border justify-center" style="flex: 0 0 80%">
+	<div class="flex flex-col w-full box-border justify-center items-center" style="flex: 0 0 80%">
 		<section>
 			{#if $gameStateStore}
 				{#if $gameStateStore?.round == null}
@@ -81,15 +81,17 @@
 						<h2 class="text-4xl mb-6 text-center">{$gameStateStore.round.question}</h2>
 
 						{#if $gameStateStore.round.state == 'show-choices' || $gameStateStore.round.state == 'voting-time' || $gameStateStore.round.state == 'voting-locked'}
-							<ChoiceButtons
-								choiceA={$gameStateStore.round.choiceA}
-								choiceB={$gameStateStore.round.choiceB}
-								fixed={voteFixed}
-								disabled={!($playerStore?.canVote ?? false)}
-								selected={voteSelected}
-								interactable={$gameStateStore.round.state == 'voting-time'}
-								on:finalized={finalizeVote}
-							/>
+							<div class="sm:min-w-[640px] sm:w-fit w-full">
+								<ChoiceButtons
+									choiceA={$gameStateStore.round.choiceA}
+									choiceB={$gameStateStore.round.choiceB}
+									fixed={voteFixed}
+									disabled={!($playerStore?.canVote ?? false)}
+									selected={voteSelected}
+									interactable={$gameStateStore.round.state == 'voting-time'}
+									on:finalized={finalizeVote}
+								/>
+							</div>
 						{/if}
 						{#if $gameStateStore.round.state == 'show-votes'}
 							<div class="flex items-center justify-center">
