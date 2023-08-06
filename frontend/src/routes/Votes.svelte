@@ -2,7 +2,7 @@
 	import { gameState as gameStateStore } from '$base/stores';
 	import type { GameState, Player } from '$base/types';
 
-	type PlayerChoice = { player: Player; lie: boolean };
+	type PlayerChoice = { player: Player; lie: boolean; id: number };
 	type PlayerChoices = {
 		a: Array<PlayerChoice>;
 		b: Array<PlayerChoice>;
@@ -20,8 +20,21 @@
 				continue;
 			}
 
-			struct[choice.option].push({ player, lie: choice.lie });
+			struct[choice.option].push({ player, lie: choice.lie, id: choice.id });
 		}
+
+		let sorter = (a: PlayerChoice, b: PlayerChoice) => {
+			if (a.id < b.id) {
+				return -1;
+			}
+			if (a.id > b.id) {
+				return 1;
+			}
+			return 0;
+		};
+
+		struct.a.sort(sorter);
+		struct.b.sort(sorter);
 
 		return struct;
 	}
