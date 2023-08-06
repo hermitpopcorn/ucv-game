@@ -1,4 +1,4 @@
-use std::net::SocketAddr;
+use std::{net::SocketAddr, thread, time::Duration};
 
 use crossbeam::channel::{unbounded, Sender};
 use futures_util::{future, stream::SplitSink, SinkExt, StreamExt};
@@ -105,6 +105,7 @@ async fn handle_connection(
 			}
 			individual_channel_message = future::lazy(|_| individual_channel_receiver.try_recv()) => {
 				if individual_channel_message.is_err() {
+					thread::sleep(Duration::from_millis(100));
 					continue;
 				}
 
