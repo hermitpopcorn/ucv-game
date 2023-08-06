@@ -6,6 +6,7 @@ use log::{debug, error, info, warn};
 
 use crate::{
 	database::database::DatabaseAccess,
+	gamemaster::types::RoundState,
 	postmaster::types::{InternalMessage, InternalMessageAction, ResponseIdentifier},
 };
 
@@ -105,6 +106,8 @@ fn get_individual_channel_sender<'map_lifetime>(
 	clients_map: &'map_lifetime ClientsMap,
 	address: &SocketAddr,
 ) -> &'map_lifetime Sender<InternalMessage> {
+	debug!("===== Get ICS");
+
 	let client = clients_map
 		.get(address)
 		.expect("Could not find the client when searching for individual channel");
@@ -112,6 +115,8 @@ fn get_individual_channel_sender<'map_lifetime>(
 }
 
 fn get_players(clients_map: &ClientsMap) -> Vec<Player> {
+	debug!("===== Get Players");
+
 	let mut existing_ids = vec![];
 	let mut players = vec![];
 	for (_, client) in clients_map.into_iter() {
@@ -132,6 +137,8 @@ fn get_players(clients_map: &ClientsMap) -> Vec<Player> {
 }
 
 fn get_organizers(clients_map: &ClientsMap) -> Vec<(&SocketAddr, &Client)> {
+	debug!("===== Get Organizers");
+
 	let mut organizers = vec![];
 
 	for (address, client) in clients_map.into_iter() {
@@ -187,7 +194,9 @@ fn register_active_player(
 	let trimmed_name = &name[0..std::cmp::min(name.len(), 12)];
 
 	// Get lock to database
-	let db_access = database.lock().expect("Could not get access to database");
+	let db_access = database
+		.try_lock()
+		.expect("Could not get access to database");
 
 	// Find player data in database
 	debug!("Finding/creating player ({})...", &trimmed_name);
@@ -245,6 +254,8 @@ fn register_active_player(
 }
 
 fn announce_active_players(clients: &ClientsMap) {
+	debug!("===== Announce active players");
+
 	let players = get_players(&clients);
 
 	for (address, client) in clients {
@@ -260,6 +271,8 @@ fn announce_active_players(clients: &ClientsMap) {
 }
 
 fn announce_updated_choices(clients: &ClientsMap, choices: ChoicesMap) {
+	debug!("===== Announce updated choices");
+
 	for (address, client) in clients {
 		let ics = &client.individual_channel_sender;
 		let send = ics.send(InternalMessage {
@@ -267,12 +280,14 @@ fn announce_updated_choices(clients: &ClientsMap, choices: ChoicesMap) {
 			..Default::default()
 		});
 		if send.is_err() {
-			warn!("Could not announce list of active players to: {}", address);
+			warn!("Could not announce updated choices to: {}", address);
 		}
 	}
 }
 
 fn announce_updated_player(clients: &ClientsMap, player: Player) {
+	debug!("===== Announce updated players");
+
 	for (address, client) in clients {
 		let ics = &client.individual_channel_sender;
 		let send = ics.send(InternalMessage {
@@ -329,6 +344,8 @@ fn register_organizer(
 }
 
 fn retrieve_active_players(clients: &ClientsMap, address: SocketAddr) {
+	debug!("===== Retrieve active players");
+
 	let ics = get_individual_channel_sender(&clients, &address);
 	let players = get_players(&clients);
 	ics.send(InternalMessage {
@@ -339,6 +356,8 @@ fn retrieve_active_players(clients: &ClientsMap, address: SocketAddr) {
 }
 
 fn exit_client(clients: &mut ClientsMap, address: SocketAddr) {
+	debug!("===== Exit client");
+
 	clients.remove(&address);
 	debug!("Removed client: {}", address);
 
@@ -346,9 +365,13 @@ fn exit_client(clients: &mut ClientsMap, address: SocketAddr) {
 }
 
 fn compile_choices(database: &DatabaseAccess, round: &Round) -> ChoicesMap {
+	debug!("===== Compile choices");
+
 	let mut choices: ChoicesMap = HashMap::new();
 
-	let db_access = database.lock().expect("Could not get access to database");
+	let db_access = database
+		.try_lock()
+		.expect("Could not get access to database");
 	match db_access.get_choices_by_round_id(round.id) {
 		Ok(choices_for_active_round) => {
 			choices = choices_for_active_round;
@@ -360,12 +383,16 @@ fn compile_choices(database: &DatabaseAccess, round: &Round) -> ChoicesMap {
 }
 
 fn compile_game_state(database: &DatabaseAccess, clients: &ClientsMap) -> GameState {
+	debug!("===== Compile game state");
+
 	let players = get_players(clients);
 	let round: Option<Round>;
 	let mut choices: ChoicesMap = HashMap::new();
 
 	{
-		let db_access = database.lock().expect("Could not get access to database");
+		let db_access = database
+			.try_lock()
+			.expect("Could not get access to database");
 		round = db_access
 			.get_active_round()
 			.expect("Could not query database for active round");
@@ -388,6 +415,8 @@ fn retrieve_game_state(
 	address: SocketAddr,
 	response_id: ResponseIdentifier,
 ) {
+	debug!("===== Retrieve game state");
+
 	let game_state = compile_game_state(database, clients);
 
 	let ics = get_individual_channel_sender(&clients, &address);
@@ -400,6 +429,8 @@ fn retrieve_game_state(
 }
 
 fn is_organizer(clients: &ClientsMap, address: &SocketAddr) -> bool {
+	debug!("===== Is organizer?");
+
 	let client = clients.get(address);
 	if client.is_none() {
 		return false;
@@ -410,6 +441,8 @@ fn is_organizer(clients: &ClientsMap, address: &SocketAddr) -> bool {
 }
 
 fn is_player(clients: &ClientsMap, address: &SocketAddr) -> bool {
+	debug!("===== Is player?");
+
 	let client: Option<&Client> = clients.get(address);
 	if client.is_none() {
 		return false;
@@ -433,7 +466,9 @@ fn set_round(
 		return;
 	}
 
-	let db_access = database.lock().expect("Could not get access to database");
+	let db_access = database
+		.try_lock()
+		.expect("Could not get access to database");
 	let find_existing_round = db_access
 		.find_round_by_number_and_phase(round.number, round.phase)
 		.expect("Could not query database to find round");
@@ -461,7 +496,12 @@ fn set_round(
 			.expect("Could not create round"),
 	};
 
-	announce_round(database, clients, Some(updated_round));
+	announce_round(database, clients, Some(updated_round.clone()));
+	drop(db_access);
+
+	if updated_round.state == RoundState::ShowVotes {
+		announce_updated_choices(clients, compile_choices(database, &updated_round));
+	}
 
 	let ics = get_individual_channel_sender(&clients, &address);
 	ics.send(InternalMessage {
@@ -473,7 +513,11 @@ fn set_round(
 }
 
 fn get_active_round(database: &DatabaseAccess) -> Result<Round> {
-	let db_access = database.lock().expect("Could not get access to database");
+	debug!("===== Get active round");
+
+	let db_access = database
+		.try_lock()
+		.expect("Could not get access to database");
 	let active_round = db_access.get_active_round()?;
 
 	if active_round.is_none() {
@@ -484,6 +528,8 @@ fn get_active_round(database: &DatabaseAccess) -> Result<Round> {
 }
 
 fn announce_round(database: &DatabaseAccess, clients: &ClientsMap, round: Option<Round>) {
+	debug!("===== Announce round");
+
 	let announce_round;
 	if round.is_none() {
 		let active_round = get_active_round(database);
@@ -522,7 +568,9 @@ fn set_choice(
 		return;
 	}
 
-	let db_access = database.lock().expect("Could not get access to database");
+	let db_access = database
+		.try_lock()
+		.expect("Could not get access to database");
 
 	let round = db_access
 		.get_active_round()
@@ -594,7 +642,9 @@ fn mark_choice_lie(
 	}
 	let round = round.unwrap();
 
-	let db_access = database.lock().expect("Could not get access to database");
+	let db_access = database
+		.try_lock()
+		.expect("Could not get access to database");
 	let update = db_access.mark_choice_lie(mark.id, mark.lie);
 	if update.is_err() {
 		warn!("Failed marking choice: {}", update.unwrap_err());
@@ -614,6 +664,8 @@ fn mark_choice_lie(
 }
 
 fn announce_choice_to_organizers(clients: &ClientsMap, player: Player, choice: Choice) {
+	debug!("===== Announce choice to organizers");
+
 	let organizers = get_organizers(&clients);
 
 	for (address, client) in organizers {
@@ -623,7 +675,7 @@ fn announce_choice_to_organizers(clients: &ClientsMap, player: Player, choice: C
 			..Default::default()
 		});
 		if send.is_err() {
-			warn!("Could not announce list of active players to: {}", address);
+			warn!("Could not announce choice to organizer: {}", address);
 		}
 	}
 }
@@ -642,7 +694,9 @@ fn set_player(
 		return;
 	}
 
-	let db_access = database.lock().expect("Could not get access to database");
+	let db_access = database
+		.try_lock()
+		.expect("Could not get access to database");
 	let updated_player = db_access.update_player(player.id, None, player.points, player.can_vote);
 	if updated_player.is_err() {
 		error!("Updating player error: {}", updated_player.unwrap_err());
