@@ -515,6 +515,10 @@ fn set_round(
 		announce_updated_choices(clients, compile_choices(database, &updated_round));
 	}
 
+	if updated_round.phase == 1 && updated_round.state == RoundState::Standby {
+		allow_all_active_players_to_vote(database, clients);
+	}
+
 	let ics = get_individual_channel_sender(&clients, &address);
 	ics.send(InternalMessage {
 		payload: InternalMessageAction::ResponseOkay,
@@ -725,4 +729,27 @@ fn set_player(
 		..Default::default()
 	})
 	.expect("Could not send okay response");
+}
+
+fn allow_all_active_players_to_vote(database: &DatabaseAccess, clients: &ClientsMap) {
+	debug!("===== Allow all active players to vote");
+
+	let db_access = database
+		.try_lock()
+		.expect("Could not get access to database");
+
+	for (_, client) in clients {
+		if client.player.is_none() {
+			continue;
+		}
+
+		let player = client.player.as_ref().unwrap();
+		let updated_player = db_access.update_player(player.id, None, None, Some(true));
+		if updated_player.is_err() {
+			error!("Updating player error: {}", updated_player.unwrap_err());
+			continue;
+		}
+		let updated_player = updated_player.unwrap();
+		announce_updated_player(clients, updated_player);
+	}
 }
