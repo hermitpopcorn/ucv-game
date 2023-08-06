@@ -10,6 +10,7 @@
 	import { toast } from '@zerodevx/svelte-toast';
 	import Votes from './Votes.svelte';
 	import Results from './Results.svelte';
+	import { fade } from 'svelte/transition';
 
 	let refreshingGameState = false;
 	onMount(async () => {
@@ -71,40 +72,60 @@
 		<section>
 			{#if $gameStateStore}
 				{#if $gameStateStore?.round == null}
-					<h1 class="text-lg">Game has not started yet. Please wait!</h1>
+					<div out:fade={{ duration: 90 }} in:fade={{ delay: 100 }}>
+						<h1 class="text-lg">Game has not started yet. Please wait!</h1>
+					</div>
 				{:else}
-					<h1 class="text-xl font-bold text-center">
-						Round {$gameStateStore.round.number}-{$gameStateStore.round.phase}
-					</h1>
-					{#if $gameStateStore.round.state == 'standby'}
-						<h2 class="text-lg text-center">Are you ready for the next round?</h2>
-					{:else}
-						<h2 class="text-4xl mb-6 text-center">{$gameStateStore.round.question}</h2>
+					<div out:fade={{ duration: 90 }} in:fade={{ delay: 100 }}>
+						<h1 class="text-xl font-bold text-center">
+							Round {$gameStateStore.round.number}-{$gameStateStore.round.phase}
+						</h1>
+						{#if $gameStateStore.round.state == 'standby'}
+							<div out:fade={{ duration: 90 }} in:fade={{ delay: 100 }}>
+								<h2 class="text-lg text-center">Are you ready for the next round?</h2>
+							</div>
+						{:else}
+							<div out:fade={{ duration: 90 }} in:fade={{ delay: 100 }}>
+								<h2 class="text-4xl mb-6 text-center">{$gameStateStore.round.question}</h2>
+							</div>
 
-						{#if $gameStateStore.round.state == 'show-choices' || $gameStateStore.round.state == 'voting-time' || $gameStateStore.round.state == 'voting-locked'}
-							<div class="sm:min-w-[640px] sm:w-fit w-full">
-								<ChoiceButtons
-									choiceA={$gameStateStore.round.choiceA}
-									choiceB={$gameStateStore.round.choiceB}
-									fixed={voteFixed}
-									disabled={!($playerStore?.canVote ?? false)}
-									selected={voteSelected}
-									interactable={$gameStateStore.round.state == 'voting-time'}
-									on:finalized={finalizeVote}
-								/>
-							</div>
+							{#if $gameStateStore.round.state == 'show-choices' || $gameStateStore.round.state == 'voting-time' || $gameStateStore.round.state == 'voting-locked'}
+								<div
+									class="sm:min-w-[640px] sm:w-fit w-full"
+									out:fade={{ duration: 90 }}
+									in:fade={{ delay: 100 }}
+								>
+									<ChoiceButtons
+										choiceA={$gameStateStore.round.choiceA}
+										choiceB={$gameStateStore.round.choiceB}
+										fixed={voteFixed}
+										disabled={!($playerStore?.canVote ?? false)}
+										selected={voteSelected}
+										interactable={$gameStateStore.round.state == 'voting-time'}
+										on:finalized={finalizeVote}
+									/>
+								</div>
+							{/if}
+							{#if $gameStateStore.round.state == 'show-votes' || $gameStateStore.round.state == 'defense'}
+								<div
+									class="flex items-center justify-center"
+									out:fade={{ duration: 90 }}
+									in:fade={{ delay: 100 }}
+								>
+									<Votes />
+								</div>
+							{/if}
+							{#if $gameStateStore.round.state == 'show-results'}
+								<div
+									class="flex items-center justify-center"
+									out:fade={{ duration: 90 }}
+									in:fade={{ delay: 100 }}
+								>
+									<Results />
+								</div>
+							{/if}
 						{/if}
-						{#if $gameStateStore.round.state == 'show-votes'}
-							<div class="flex items-center justify-center">
-								<Votes />
-							</div>
-						{/if}
-						{#if $gameStateStore.round.state == 'show-results'}
-							<div class="flex items-center justify-center">
-								<Results />
-							</div>
-						{/if}
-					{/if}
+					</div>
 				{/if}
 			{/if}
 		</section>
