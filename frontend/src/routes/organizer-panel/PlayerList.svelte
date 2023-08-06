@@ -63,10 +63,10 @@
 
 <aside class={$$restProps.class || ''}>
 	<h1 class="font-bold text-lg mb-4">Active Players</h1>
-	<ul class="flex flex-col flex-wrap gap-4 justify-center">
+	<ul class="flex flex-wrap gap-8 justify-center">
 		{#if $gameState?.players}
 			{#each activePlayersData as data (data.player.id)}
-				<li class="flex flex-col items-center">
+				<li class="flex flex-col items-center border-2 p-2">
 					<h3 class="text-sm">{data.player.name}</h3>
 					<h4 class="text-sm">
 						{data.player.points} P

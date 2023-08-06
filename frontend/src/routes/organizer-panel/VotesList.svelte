@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { gameState as gameStateStore } from '$base/stores';
-	import type { Choice, GameState, Player } from '$base/types';
+	import type { GameState, Player } from '$base/types';
 
 	type PlayerChoice = { player: Player; lie: boolean; id: number };
 	type PlayerChoices = {

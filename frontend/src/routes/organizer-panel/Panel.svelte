@@ -68,7 +68,7 @@
 		</div>
 	{/if}
 	<div class="flex flex-col w-full box-border" style="flex: 0 0 80%">
-		<article class="border-4 p-4">
+		<article class="border-4 p-4 mb-4">
 			<h1 class="font-bold text-lg mb-4">Round Setup</h1>
 			<form>
 				<div class="flex w-full gap-4">
@@ -120,9 +120,9 @@
 				</div>
 			</form>
 		</article>
+		<PlayerList class="border-4 p-4 mb-4" />
 	</div>
 	<div class="flex flex-col w-full box-border items-center" style="flex: 0 0 20%">
-		<PlayerList class="border-4 p-4 mb-4" />
 		<VotesList class="border-4 p-4 text-center" />
 	</div>
 </section>
