@@ -15,11 +15,12 @@ use tokio_tungstenite::{
 use crate::gamemaster::types::{ChoiceOption, MarkChoiceLie, Player, Round};
 
 use super::{
-	json::{
+	json::parser::parse_message,
+	json::response::{
 		make_json_active_players, make_json_game_state, make_json_not_okay_response,
 		make_json_okay_response, make_json_organizer_identity_response, make_json_player_choice,
 		make_json_player_identity_response, make_json_round, make_json_updated_choices,
-		make_json_updated_player, parse_message,
+		make_json_updated_player,
 	},
 	types::{
 		InternalMessage, InternalMessageAction, ResponseIdentifier, WebSocketMessage,
