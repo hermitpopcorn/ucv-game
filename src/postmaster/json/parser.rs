@@ -1,7 +1,7 @@
 use serde_derive::Deserialize;
 
 use crate::{
-	gamemaster::types::{ChoiceOption, MarkChoiceLie, Player, Round, RoundState},
+	gamemaster::types::{ChoiceOption, Player, Round, RoundState},
 	postmaster::types::{ResponseIdentifier, WebSocketMessage, WebSocketMessageAction},
 };
 
@@ -53,14 +53,28 @@ struct JsonSetChoiceOptionPayload {
 	payload: ChoiceOption,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+#[allow(non_snake_case)]
+pub struct MarkPlayer {
+	pub id: u8,
+	pub points: Option<usize>,
+	pub canVote: Option<bool>,
+}
+
 #[derive(Deserialize, Debug)]
 struct JsonSetPlayerPayload {
-	payload: Player,
+	payload: MarkPlayer,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct MarkChoice {
+	pub id: u8,
+	pub lie: Option<bool>,
 }
 
 #[derive(Deserialize, Debug)]
 struct JsonMarkChoicePayload {
-	payload: MarkChoiceLie,
+	payload: MarkChoice,
 }
 
 #[derive(Deserialize, Debug)]
@@ -127,7 +141,10 @@ pub fn parse_message(message: String) -> Option<WebSocketMessage> {
 
 			return Some(WebSocketMessage {
 				response_id: json.response_id,
-				action: WebSocketMessageAction::MarkChoiceLie(parsed_payload.payload),
+				action: WebSocketMessageAction::MarkChoice(
+					parsed_payload.payload.id,
+					parsed_payload.payload.lie,
+				),
 			});
 		}
 		"set-choice" => {
@@ -152,7 +169,11 @@ pub fn parse_message(message: String) -> Option<WebSocketMessage> {
 
 			return Some(WebSocketMessage {
 				response_id: json.response_id,
-				action: WebSocketMessageAction::SetPlayer(parsed_payload.payload),
+				action: WebSocketMessageAction::MarkPlayer(
+					parsed_payload.payload.id,
+					None,
+					parsed_payload.payload.canVote,
+				),
 			});
 		}
 		"set-player-points" => {
@@ -165,7 +186,11 @@ pub fn parse_message(message: String) -> Option<WebSocketMessage> {
 
 			return Some(WebSocketMessage {
 				response_id: json.response_id,
-				action: WebSocketMessageAction::SetPlayer(parsed_payload.payload),
+				action: WebSocketMessageAction::MarkPlayer(
+					parsed_payload.payload.id,
+					parsed_payload.payload.points,
+					None,
+				),
 			});
 		}
 		_ => return None,

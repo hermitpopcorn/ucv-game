@@ -12,7 +12,7 @@ use tokio_tungstenite::{
 	WebSocketStream,
 };
 
-use crate::gamemaster::types::{ChoiceOption, MarkChoiceLie, Player, Round};
+use crate::gamemaster::types::{ChoiceOption, Round};
 
 use super::{
 	json::parser::parse_message,
@@ -135,14 +135,14 @@ fn handle_message(gmcs: &Sender<InternalMessage>, address: SocketAddr, message: 
 		WebSocketMessageAction::SetRound(round) => {
 			set_round(gmcs, address, message.response_id, round);
 		}
-		WebSocketMessageAction::MarkChoiceLie(mark) => {
-			mark_choice_lie(gmcs, address, message.response_id, mark);
+		WebSocketMessageAction::MarkChoice(id, lie) => {
+			mark_choice(gmcs, address, message.response_id, id, lie);
 		}
 		WebSocketMessageAction::SetChoiceOption(option) => {
 			set_choice_option(gmcs, address, message.response_id, option);
 		}
-		WebSocketMessageAction::SetPlayer(player) => {
-			set_player(gmcs, address, message.response_id, player)
+		WebSocketMessageAction::MarkPlayer(id, points, can_vote) => {
+			mark_player(gmcs, address, message.response_id, id, points, can_vote)
 		}
 	};
 }
@@ -280,14 +280,15 @@ fn set_choice_option(
 		.expect("Could not send request to GM for setting choice");
 }
 
-fn mark_choice_lie(
+fn mark_choice(
 	sender: &Sender<InternalMessage>,
 	address: SocketAddr,
 	response_id: ResponseIdentifier,
-	mark: MarkChoiceLie,
+	id: u8,
+	lie: Option<bool>,
 ) {
 	let internal_message = InternalMessage {
-		payload: InternalMessageAction::RequestMarkChoiceLie(address, mark),
+		payload: InternalMessageAction::RequestMarkChoice(address, id, lie),
 		response_id,
 		..Default::default()
 	};
@@ -297,14 +298,16 @@ fn mark_choice_lie(
 		.expect("Could not send request to GM for setting choice");
 }
 
-fn set_player(
+fn mark_player(
 	sender: &Sender<InternalMessage>,
 	address: SocketAddr,
 	response_id: ResponseIdentifier,
-	player: Player,
+	id: u8,
+	points: Option<usize>,
+	can_vote: Option<bool>,
 ) {
 	let internal_message = InternalMessage {
-		payload: InternalMessageAction::RequestSetPlayerData(address, player),
+		payload: InternalMessageAction::RequestMarkPlayer(address, id, points, can_vote),
 		response_id,
 		..Default::default()
 	};

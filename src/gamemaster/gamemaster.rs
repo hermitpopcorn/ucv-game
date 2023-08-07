@@ -11,8 +11,8 @@ use crate::{
 };
 
 use super::types::{
-	Choice, ChoiceOption, ChoicesMap, Client, ClientStatus, ClientsMap, GameState, MarkChoiceLie,
-	Organizer, Player, Round,
+	Choice, ChoiceOption, ChoicesMap, Client, ClientStatus, ClientsMap, GameState, Organizer,
+	Player, Round,
 };
 
 pub async fn start_gamemaster(
@@ -74,22 +74,25 @@ pub async fn start_gamemaster(
 					choice,
 				);
 			}
-			InternalMessageAction::RequestSetPlayerData(address, player) => {
-				set_player(
+			InternalMessageAction::RequestMarkPlayer(address, id, points, can_vote) => {
+				mark_player(
 					&database,
 					&clients,
 					address,
 					received_message.response_id,
-					player,
+					id,
+					points,
+					can_vote,
 				);
 			}
-			InternalMessageAction::RequestMarkChoiceLie(address, mark) => {
-				mark_choice_lie(
+			InternalMessageAction::RequestMarkChoice(address, id, lie) => {
+				mark_choice(
 					&database,
 					&clients,
 					address,
 					received_message.response_id,
-					mark,
+					id,
+					lie,
 				);
 			}
 			_ => continue,
@@ -622,12 +625,13 @@ fn set_choice(
 	.expect("Could not send okay response");
 }
 
-fn mark_choice_lie(
+fn mark_choice(
 	database: &DatabaseAccess,
 	clients: &ClientsMap,
 	address: SocketAddr,
 	response_id: ResponseIdentifier,
-	mark: MarkChoiceLie,
+	id: u8,
+	lie: Option<bool>,
 ) {
 	debug!("===== Mark choice");
 
@@ -646,7 +650,7 @@ fn mark_choice_lie(
 	let db_access = database
 		.try_lock()
 		.expect("Could not get access to database");
-	let update = db_access.mark_choice_lie(mark.id, mark.lie);
+	let update = db_access.mark_choice(id, lie);
 	if update.is_err() {
 		warn!("Failed marking choice: {}", update.unwrap_err());
 		return;
@@ -681,24 +685,26 @@ fn announce_choice_to_organizers(clients: &ClientsMap, player: Player, choice: C
 	}
 }
 
-fn set_player(
+fn mark_player(
 	database: &DatabaseAccess,
 	clients: &ClientsMap,
 	address: SocketAddr,
 	response_id: ResponseIdentifier,
-	player: Player,
+	id: u8,
+	points: Option<usize>,
+	can_vote: Option<bool>,
 ) {
-	debug!("===== Set player");
+	debug!("===== Mark player");
 
 	if !is_organizer(clients, &address) {
-		warn!("Set player request came from a non-organizer");
+		warn!("Mark player request came from a non-organizer");
 		return;
 	}
 
 	let db_access = database
 		.try_lock()
 		.expect("Could not get access to database");
-	let updated_player = db_access.update_player(player.id, None, player.points, player.can_vote);
+	let updated_player = db_access.mark_player(id, points, can_vote);
 	if updated_player.is_err() {
 		error!("Updating player error: {}", updated_player.unwrap_err());
 		return;
@@ -729,7 +735,7 @@ fn allow_all_active_players_to_vote(database: &DatabaseAccess, clients: &Clients
 		}
 
 		let player = client.player.as_ref().unwrap();
-		let updated_player = db_access.update_player(player.id, None, None, Some(true));
+		let updated_player = db_access.mark_player(player.id, None, Some(true));
 		if updated_player.is_err() {
 			error!("Updating player error: {}", updated_player.unwrap_err());
 			continue;

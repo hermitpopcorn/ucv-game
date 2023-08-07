@@ -84,12 +84,6 @@ pub struct Choice {
 	pub lie: bool,
 }
 
-#[derive(Debug, Clone)]
-pub struct MarkChoiceLie {
-	pub id: u8,
-	pub lie: bool,
-}
-
 pub type ChoicesMap = HashMap<u8, Choice>;
 
 #[derive(Debug, Clone)]

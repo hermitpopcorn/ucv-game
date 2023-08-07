@@ -6,7 +6,7 @@ use serde::{
 use serde_json::json;
 
 use crate::gamemaster::types::{
-	Choice, ChoiceOption, GameState, MarkChoiceLie, Organizer, Player, Round, RoundState,
+	Choice, ChoiceOption, GameState, Organizer, Player, Round, RoundState,
 };
 
 impl Serialize for Player {
@@ -91,59 +91,6 @@ impl Into<serde_json::Value> for Organizer {
 		json!({
 			"name": self.name,
 		})
-	}
-}
-
-impl<'de> serde::de::Deserialize<'de> for MarkChoiceLie {
-	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-	where
-		D: serde::Deserializer<'de>,
-	{
-		struct MarkChoiceLieVisitor;
-
-		impl<'de> serde::de::Visitor<'de> for MarkChoiceLieVisitor {
-			type Value = MarkChoiceLie;
-
-			fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-				formatter.write_str("an object with choice ID and lie status bool")
-			}
-
-			fn visit_map<V>(self, mut map: V) -> Result<Self::Value, V::Error>
-			where
-				V: MapAccess<'de>,
-			{
-				let mut id: Option<u8> = None;
-				let mut lie: Option<bool> = None;
-
-				while let Some(key) = map.next_key()? {
-					match key {
-						"id" => {
-							id = Some(map.next_value()?);
-						}
-						"lie" => {
-							lie = Some(map.next_value()?);
-						}
-						_ => {
-							let _: Option<&str> = map.next_value().expect("GUH");
-						}
-					}
-				}
-
-				if id.is_none() {
-					return Err(de::Error::missing_field("id"));
-				}
-				if lie.is_none() {
-					return Err(de::Error::missing_field("lie"));
-				}
-
-				Ok(MarkChoiceLie {
-					id: id.unwrap(),
-					lie: lie.unwrap(),
-				})
-			}
-		}
-
-		deserializer.deserialize_map(MarkChoiceLieVisitor)
 	}
 }
 

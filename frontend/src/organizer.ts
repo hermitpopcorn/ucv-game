@@ -52,7 +52,6 @@ export function updateRound(round: Round): Promise<void> {
 
 export function togglePlayerCanVote(player: Player, newCanVoteStatus: boolean): Promise<void> {
 	const updatingToast = toast.push('Toggling ability to vote...', { initial: 0 });
-	player.canVote = newCanVoteStatus;
 
 	return new Promise((resolve) => {
 		const socket = getWebsocketConnection();
@@ -61,7 +60,10 @@ export function togglePlayerCanVote(player: Player, newCanVoteStatus: boolean): 
 			JSON.stringify({
 				responseId,
 				action: 'set-player-can-vote',
-				payload: player,
+				payload: {
+					id: player.id,
+					canVote: newCanVoteStatus,
+				},
 			}),
 		);
 
@@ -78,7 +80,6 @@ export function togglePlayerCanVote(player: Player, newCanVoteStatus: boolean): 
 
 export function toggleVoteIsLie(choice: Choice, newLieStatus: boolean): Promise<void> {
 	const updatingToast = toast.push('Toggling lie status...', { initial: 0 });
-	choice.lie = newLieStatus;
 
 	return new Promise((resolve) => {
 		const socket = getWebsocketConnection();
@@ -87,7 +88,10 @@ export function toggleVoteIsLie(choice: Choice, newLieStatus: boolean): Promise<
 			JSON.stringify({
 				responseId,
 				action: 'set-vote-is-lie',
-				payload: choice,
+				payload: {
+					id: choice.id,
+					lie: newLieStatus,
+				},
 			}),
 		);
 
@@ -104,9 +108,9 @@ export function toggleVoteIsLie(choice: Choice, newLieStatus: boolean): Promise<
 
 export function changePlayerPoint(player: Player, amount: number): Promise<void> {
 	const updatingToast = toast.push('Updating points...', { initial: 0 });
-	player.points = (player.points ?? 0) + amount;
-	if (player.points < 0) {
-		player.points = 0;
+	let points = (player.points ?? 0) + amount;
+	if (points < 0) {
+		points = 0;
 	}
 
 	return new Promise((resolve) => {
@@ -116,7 +120,10 @@ export function changePlayerPoint(player: Player, amount: number): Promise<void>
 			JSON.stringify({
 				responseId,
 				action: 'set-player-points',
-				payload: player,
+				payload: {
+					id: player.id,
+					points,
+				},
 			}),
 		);
 

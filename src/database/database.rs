@@ -13,13 +13,7 @@ pub trait Database: Send {
 	fn find_player_by_name(&self, name: &str) -> Result<Option<Player>>;
 	fn create_player(&self, name: &str) -> Result<Player>;
 	fn find_or_create_player(&self, name: &str) -> Result<Player>;
-	fn update_player(
-		&self,
-		id: u8,
-		name: Option<&str>,
-		points: Option<usize>,
-		can_vote: Option<bool>,
-	) -> Result<Player>;
+	fn mark_player(&self, id: u8, points: Option<usize>, can_vote: Option<bool>) -> Result<Player>;
 
 	fn get_active_round(&self) -> Result<Option<Round>>;
 	fn find_round_by_number_and_phase(&self, number: u8, phase: u8) -> Result<Option<Round>>;
@@ -53,7 +47,7 @@ pub trait Database: Send {
 		player_id: u8,
 		choice: ChoiceOption,
 	) -> Result<Choice>;
-	fn mark_choice_lie(&self, choice_id: u8, lie: bool) -> Result<()>;
+	fn mark_choice(&self, choice_id: u8, lie: Option<bool>) -> Result<()>;
 
 	fn get_choices_by_round_id(&self, round_id: u8) -> Result<ChoicesMap>;
 

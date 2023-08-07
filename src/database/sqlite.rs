@@ -164,18 +164,9 @@ impl Database for SqliteDatabase {
 		}
 	}
 
-	fn update_player(
-		&self,
-		id: u8,
-		name: Option<&str>,
-		points: Option<usize>,
-		can_vote: Option<bool>,
-	) -> Result<Player> {
+	fn mark_player(&self, id: u8, points: Option<usize>, can_vote: Option<bool>) -> Result<Player> {
 		let mut columns: Vec<&str> = vec![];
 
-		if name.is_some_and(|name| name.len() > 0) {
-			columns.push("name = :name");
-		}
 		if points.is_some() {
 			columns.push("points = :points");
 		}
@@ -189,10 +180,6 @@ impl Database for SqliteDatabase {
 			.connection
 			.prepare(format!("UPDATE Players SET {} WHERE id = :id", columns).as_str())?;
 
-		let get_index = statement.parameter_index(":name")?;
-		if let Some(name_index) = get_index {
-			statement.raw_bind_parameter(name_index, name.unwrap())?;
-		}
 		let get_index = statement.parameter_index(":points")?;
 		if let Some(points_index) = get_index {
 			statement.raw_bind_parameter(points_index, points.unwrap())?;
@@ -346,11 +333,15 @@ impl Database for SqliteDatabase {
 		Ok(round)
 	}
 
-	fn mark_choice_lie(&self, choice_id: u8, lie: bool) -> Result<()> {
+	fn mark_choice(&self, choice_id: u8, lie: Option<bool>) -> Result<()> {
+		if lie.is_none() {
+			return Ok(());
+		}
+
 		let mut statement = self
 			.connection
 			.prepare("UPDATE Choices SET lie = ?1 WHERE id = ?2")?;
-		let update = statement.execute(params![lie, choice_id])?;
+		let update = statement.execute(params![lie.unwrap(), choice_id])?;
 
 		if update != 1 {
 			bail!("Could not mark choice");
