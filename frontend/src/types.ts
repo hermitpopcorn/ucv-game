@@ -18,8 +18,6 @@ export type Player = {
 	canVote?: boolean;
 };
 
-export type ActivePlayers = Array<Player>;
-
 export type Organizer = {
 	name: string;
 };
@@ -53,9 +51,10 @@ export type Choice = {
 };
 
 export type ChoiceMap = Map<PlayerID, Choice>;
+export type ActivePlayersMap = Map<PlayerID, Player>;
 
 export type GameState = {
 	round: Round | null;
-	players: ActivePlayers;
+	players: ActivePlayersMap;
 	choices: ChoiceMap;
 };

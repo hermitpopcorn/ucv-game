@@ -1,4 +1,4 @@
-import type { GameState, Player } from '$base/types';
+import type { ActivePlayersMap, Choice, ChoiceMap, GameState, Player } from '$base/types';
 
 export type PlayerChoice = { player: Player; lie: boolean; id: number };
 export type PlayerChoices = {
@@ -12,7 +12,8 @@ export function getChoices(gameState: GameState | null): PlayerChoices {
 		return struct;
 	}
 
-	for (const player of gameState.players) {
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	for (const [_id, player] of gameState.players) {
 		const choice = gameState.choices.get(player.id);
 		if (!choice) {
 			continue;
@@ -48,4 +49,26 @@ export function countTruthsOnly(choices: Array<PlayerChoice>): number {
 	}
 
 	return count;
+}
+
+export function convertPlayersObjectToMap(player: object): ActivePlayersMap {
+	const map: Map<number, Player> = new Map();
+	if (player) {
+		for (const c of Object.entries(player)) {
+			map.set(Number(c[0]), c[1]);
+		}
+	}
+
+	return map;
+}
+
+export function convertChoicesObjectToMap(choices: object): ChoiceMap {
+	const map: Map<number, Choice> = new Map();
+	if (choices) {
+		for (const c of Object.entries(choices)) {
+			map.set(Number(c[0]), c[1]);
+		}
+	}
+
+	return map;
 }

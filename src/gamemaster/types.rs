@@ -85,10 +85,11 @@ pub struct Choice {
 }
 
 pub type ChoicesMap = HashMap<u8, Choice>;
+pub type PlayerMap = HashMap<u8, Player>;
 
 #[derive(Debug, Clone)]
 pub struct GameState {
 	pub round: Option<Round>,
-	pub players: Vec<Player>,
+	pub players: PlayerMap,
 	pub choices: ChoicesMap,
 }

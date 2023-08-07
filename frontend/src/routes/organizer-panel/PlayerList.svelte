@@ -18,7 +18,7 @@
 
 		activePlayersData = [];
 
-		for (let player of players) {
+		for (let [_id, player] of players) {
 			let choices = gs?.choices;
 			let choice = choices?.get(player.id);
 

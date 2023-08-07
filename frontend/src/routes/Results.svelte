@@ -19,15 +19,7 @@
 			if (choice.lie) {
 				continue;
 			}
-
-			let present = false;
-			for (let pcheck of gs.players) {
-				if (pcheck.id == playerId) {
-					present = true;
-					break;
-				}
-			}
-			if (!present) {
+			if (!gs.players.get(playerId)) {
 				continue;
 			}
 
@@ -56,10 +48,12 @@
 			uniqueOption = 'draw';
 		}
 
-		for (let player of gs.players) {
-			if (winnerPlayers.includes(player.id)) {
-				winners.push(player);
+		for (let playerId of winnerPlayers) {
+			let player = gs.players.get(playerId);
+			if (!player) {
+				continue;
 			}
+			winners.push(player);
 		}
 	});
 </script>

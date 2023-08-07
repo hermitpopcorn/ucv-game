@@ -59,11 +59,17 @@ pub(super) fn get_players(clients_map: &ClientsMap) -> Vec<(&SocketAddr, &Player
 	players
 }
 
-pub(super) fn get_cloned_vector_of_players(clients_map: &ClientsMap) -> Vec<Player> {
+pub(super) fn get_cloned_map_of_players(clients_map: &ClientsMap) -> HashMap<u8, Player> {
 	debug!("===== Get cloned list of Players");
 
+	let mut map = HashMap::new();
 	let players = get_players(clients_map);
-	players.iter().map(|p| p.1.clone()).collect()
+	for (_, p) in players {
+		let player = p.clone();
+		map.insert(player.id, player);
+	}
+
+	map
 }
 
 pub(super) fn is_player(clients: &ClientsMap, address: &SocketAddr) -> bool {
@@ -143,7 +149,7 @@ pub(super) fn compile_game_state(
 ) -> Result<GameState> {
 	debug!("===== Compile game state");
 
-	let players = get_cloned_vector_of_players(clients);
+	let players = get_cloned_map_of_players(clients);
 
 	let mut choices: ChoicesMap = HashMap::new();
 
@@ -166,7 +172,7 @@ pub(super) fn compile_game_state(
 pub(super) fn announce_active_players(clients: &ClientsMap) {
 	debug!("===== Announce active players");
 
-	let players = get_cloned_vector_of_players(&clients);
+	let players = get_cloned_map_of_players(&clients);
 
 	for (address, client) in clients {
 		let ics = &client.individual_channel_sender;

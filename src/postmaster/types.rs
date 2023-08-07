@@ -3,7 +3,7 @@ use std::net::SocketAddr;
 use crossbeam::channel::Sender;
 
 use crate::gamemaster::types::{
-	Choice, ChoiceOption, ChoicesMap, GameState, Organizer, Player, Round,
+	Choice, ChoiceOption, ChoicesMap, GameState, Organizer, Player, PlayerMap, Round,
 };
 
 pub type ResponseIdentifier = Option<String>;
@@ -15,7 +15,7 @@ pub enum InternalMessageAction {
 	ResponseNotOkay(String),
 
 	ResponsePlayerIdentity(Player),
-	ResponseActivePlayers(Vec<Player>),
+	ResponseActivePlayers(PlayerMap),
 	ResponseUpdatedPlayer(Player),
 	ResponseGameState(GameState),
 	ResponseRound(Round),

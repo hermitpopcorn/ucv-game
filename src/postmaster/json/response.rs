@@ -1,7 +1,7 @@
 use serde_json::json;
 
 use crate::{
-	gamemaster::types::{Choice, ChoicesMap, GameState, Organizer, Player, Round},
+	gamemaster::types::{Choice, ChoicesMap, GameState, Organizer, Player, PlayerMap, Round},
 	postmaster::types::ResponseIdentifier,
 };
 
@@ -30,7 +30,7 @@ pub fn make_json_organizer_identity_response(
 
 pub fn make_json_active_players(
 	response_id: ResponseIdentifier,
-	active_players: Vec<Player>,
+	active_players: PlayerMap,
 ) -> serde_json::Value {
 	json!({
 		"responseId": response_id,
