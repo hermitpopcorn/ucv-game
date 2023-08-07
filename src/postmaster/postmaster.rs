@@ -60,7 +60,7 @@ async fn handle_connection(
 	info!("Sending client registration: {}", address);
 	gm_channel_sender
 		.send(InternalMessage {
-			payload: InternalMessageAction::RegisterClient(
+			payload: InternalMessageAction::RequestRegisterClient(
 				address,
 				individual_channel_sender.clone(),
 			),
@@ -194,7 +194,7 @@ fn log_in_player(
 	name: String,
 ) {
 	let internal_message = InternalMessage {
-		payload: InternalMessageAction::RegisterActivePlayer(address, name),
+		payload: InternalMessageAction::RequestRegisterActivePlayer(address, name),
 		response_id,
 		..Default::default()
 	};
@@ -210,7 +210,7 @@ fn log_in_organizer(
 	password: String,
 ) {
 	let internal_message = InternalMessage {
-		payload: InternalMessageAction::RegisterOrganizer(address, password),
+		payload: InternalMessageAction::RequestRegisterOrganizer(address, password),
 		response_id,
 		..Default::default()
 	};
@@ -235,7 +235,7 @@ fn retrieve_game_state(
 	response_id: ResponseIdentifier,
 ) {
 	let internal_message = InternalMessage {
-		payload: InternalMessageAction::RetrieveGameState(address),
+		payload: InternalMessageAction::RequestGameState(address),
 		response_id,
 		..Default::default()
 	};
@@ -252,7 +252,7 @@ fn set_round(
 	round: Round,
 ) {
 	let internal_message = InternalMessage {
-		payload: InternalMessageAction::SetRound(address, round),
+		payload: InternalMessageAction::RequestSetRound(address, round),
 		response_id,
 		..Default::default()
 	};
@@ -269,7 +269,7 @@ fn set_choice_option(
 	option: ChoiceOption,
 ) {
 	let internal_message = InternalMessage {
-		payload: InternalMessageAction::SetChoiceOption(address, option),
+		payload: InternalMessageAction::RequestSetChoiceOption(address, option),
 		response_id,
 		..Default::default()
 	};
@@ -286,7 +286,7 @@ fn mark_choice_lie(
 	mark: MarkChoiceLie,
 ) {
 	let internal_message = InternalMessage {
-		payload: InternalMessageAction::MarkChoiceLie(address, mark),
+		payload: InternalMessageAction::RequestMarkChoiceLie(address, mark),
 		response_id,
 		..Default::default()
 	};
@@ -303,7 +303,7 @@ fn set_player(
 	player: Player,
 ) {
 	let internal_message = InternalMessage {
-		payload: InternalMessageAction::SetPlayer(address, player),
+		payload: InternalMessageAction::RequestSetPlayerData(address, player),
 		response_id,
 		..Default::default()
 	};

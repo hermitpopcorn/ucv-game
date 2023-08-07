@@ -10,7 +10,7 @@ use database::sqlite::SqliteDatabase;
 use env_logger::Env;
 use futures_util::future;
 use gamemaster::gamemaster::start_gamemaster;
-use log::{info, warn};
+use log::{error, info};
 use postmaster::{postmaster::accept_connection, types::InternalMessage};
 use tokio::net::TcpListener;
 
@@ -28,7 +28,6 @@ async fn main() {
 	let database_arc = Arc::new(Mutex::new(database));
 
 	// Create crossbeam channels for communicating with gamemaster
-	// Player <-> GM
 	let (gm_channel_sender, gm_channel_receiver) = unbounded::<InternalMessage>();
 
 	// Run gamemaster in new thread
@@ -43,20 +42,24 @@ async fn main() {
 
 	loop {
 		tokio::select! {
+			// On new websocket connection
 			Ok((stream, _)) = listener.accept() => {
-				let peer = stream.peer_addr().expect("connected streams should have a peer address");
+				let peer = stream.peer_addr().expect("Connected streams should have a peer address");
 				info!("Peer address: {}", peer);
 
+				// Create a dedicated thread
 				let cloned_gm_channel_sender = gm_channel_sender.clone();
 				thread::spawn(move || { accept_connection(peer, stream, cloned_gm_channel_sender) });
 			},
+
+			// Monitor gamemaster thread, end everything if it's dead
 			gm_handle_finished = future::lazy(|_| gamemaster_handle.is_finished()) => {
 				if !gm_handle_finished {
 					thread::sleep(Duration::from_millis(50));
 					continue;
 				}
 
-				warn!("Gamemaster thread is dead!");
+				error!("Gamemaster thread is dead!");
 				exit(1);
 			}
 		}

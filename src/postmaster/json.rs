@@ -495,17 +495,6 @@ pub fn make_json_updated_player(
 	})
 }
 
-pub fn make_json_alert_message(
-	response_id: ResponseIdentifier,
-	message: String,
-) -> serde_json::Value {
-	json!({
-		"responseId": response_id,
-		"action": "show-message",
-		"payload": message,
-	})
-}
-
 pub fn make_json_okay_response(response_id: ResponseIdentifier) -> serde_json::Value {
 	json!({
 		"responseId": response_id,

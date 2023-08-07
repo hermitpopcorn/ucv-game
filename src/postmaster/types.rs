@@ -10,9 +10,10 @@ pub type ResponseIdentifier = Option<String>;
 
 #[derive(Debug, Clone)]
 pub enum InternalMessageAction {
-	// Responses by GM
+	// General responses
 	ResponseOkay,
 	ResponseNotOkay(String),
+
 	ResponsePlayerIdentity(Player),
 	ResponseActivePlayers(Vec<Player>),
 	ResponseUpdatedPlayer(Player),
@@ -25,16 +26,18 @@ pub enum InternalMessageAction {
 
 	// From Client to GM
 	ExitClient(SocketAddr),
-	RegisterClient(SocketAddr, Sender<InternalMessage>),
-	RegisterActivePlayer(SocketAddr, String),
-	RetrieveActivePlayers(SocketAddr),
-	RetrieveGameState(SocketAddr),
-	MarkChoiceLie(SocketAddr, MarkChoiceLie),
-	SetChoiceOption(SocketAddr, ChoiceOption),
+	RequestRegisterClient(SocketAddr, Sender<InternalMessage>),
 
-	RegisterOrganizer(SocketAddr, String),
-	SetRound(SocketAddr, Round),
-	SetPlayer(SocketAddr, Player),
+	// From Player client to GM
+	RequestRegisterActivePlayer(SocketAddr, String),
+	RequestGameState(SocketAddr),
+	RequestMarkChoiceLie(SocketAddr, MarkChoiceLie),
+	RequestSetChoiceOption(SocketAddr, ChoiceOption),
+
+	// From Organizer client to GM
+	RequestRegisterOrganizer(SocketAddr, String),
+	RequestSetRound(SocketAddr, Round),
+	RequestSetPlayerData(SocketAddr, Player),
 }
 
 #[derive(Debug, Clone)]

@@ -24,16 +24,16 @@ pub async fn start_gamemaster(
 	loop {
 		let received_message = gm_channel_receiver.recv();
 		if received_message.is_err() {
-			warn!("Error when trying to receive channel message");
+			error!("Error when trying to receive channel message");
 			break;
 		}
 
 		let received_message = received_message.unwrap();
 		match received_message.payload {
-			InternalMessageAction::RegisterClient(address, individual_channel_sender) => {
+			InternalMessageAction::RequestRegisterClient(address, individual_channel_sender) => {
 				register_client(&mut clients, address, individual_channel_sender);
 			}
-			InternalMessageAction::RegisterActivePlayer(address, name) => {
+			InternalMessageAction::RequestRegisterActivePlayer(address, name) => {
 				register_active_player(
 					&database,
 					&mut clients,
@@ -42,7 +42,7 @@ pub async fn start_gamemaster(
 					name,
 				);
 			}
-			InternalMessageAction::RegisterOrganizer(address, password) => {
+			InternalMessageAction::RequestRegisterOrganizer(address, password) => {
 				register_organizer(
 					&mut clients,
 					address,
@@ -50,16 +50,13 @@ pub async fn start_gamemaster(
 					password,
 				);
 			}
-			InternalMessageAction::RetrieveActivePlayers(address) => {
-				retrieve_active_players(&clients, address);
-			}
 			InternalMessageAction::ExitClient(address) => {
 				exit_client(&mut clients, address);
 			}
-			InternalMessageAction::RetrieveGameState(address) => {
+			InternalMessageAction::RequestGameState(address) => {
 				retrieve_game_state(&database, &clients, address, received_message.response_id);
 			}
-			InternalMessageAction::SetRound(address, round) => {
+			InternalMessageAction::RequestSetRound(address, round) => {
 				set_round(
 					&database,
 					&clients,
@@ -68,7 +65,7 @@ pub async fn start_gamemaster(
 					round,
 				);
 			}
-			InternalMessageAction::SetChoiceOption(address, choice) => {
+			InternalMessageAction::RequestSetChoiceOption(address, choice) => {
 				set_choice(
 					&database,
 					&clients,
@@ -77,7 +74,7 @@ pub async fn start_gamemaster(
 					choice,
 				);
 			}
-			InternalMessageAction::SetPlayer(address, player) => {
+			InternalMessageAction::RequestSetPlayerData(address, player) => {
 				set_player(
 					&database,
 					&clients,
@@ -86,7 +83,7 @@ pub async fn start_gamemaster(
 					player,
 				);
 			}
-			InternalMessageAction::MarkChoiceLie(address, mark) => {
+			InternalMessageAction::RequestMarkChoiceLie(address, mark) => {
 				mark_choice_lie(
 					&database,
 					&clients,
@@ -341,18 +338,6 @@ fn register_organizer(
 		.expect("Could not send identity confirmation response");
 
 	debug!("Response (organizer identity confirmation) sent");
-}
-
-fn retrieve_active_players(clients: &ClientsMap, address: SocketAddr) {
-	debug!("===== Retrieve active players");
-
-	let ics = get_individual_channel_sender(&clients, &address);
-	let players = get_players(&clients);
-	ics.send(InternalMessage {
-		payload: InternalMessageAction::ResponseActivePlayers(players),
-		..Default::default()
-	})
-	.expect("Could not send list of active players");
 }
 
 fn exit_client(clients: &mut ClientsMap, address: SocketAddr) {
