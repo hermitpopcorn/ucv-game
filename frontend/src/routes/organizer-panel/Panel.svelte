@@ -9,6 +9,7 @@
 	import PlayerList from './PlayerList.svelte';
 	import VotesList from './VotesList.svelte';
 	import Spinner from '$base/lib/Spinner.svelte';
+	import { toast } from '@zerodevx/svelte-toast';
 
 	let refreshingGameState = false;
 	onMount(async () => {
@@ -45,16 +46,30 @@
 		}
 		updating = true;
 
-		await updateRound({
-			id: 0,
-			number: round,
-			phase: phase,
-			state: state,
-			question: question,
-			choiceA: choiceA,
-			choiceB: choiceB,
-		});
-		updating = false;
+		const updatingToast = toast.push('Updating round data...', { initial: 0 });
+
+		try {
+			await updateRound({
+				id: 0,
+				number: round,
+				phase: phase,
+				state: state,
+				question: question,
+				choiceA: choiceA,
+				choiceB: choiceB,
+			});
+			toast.pop(updatingToast);
+			toast.push('Round updated.', {
+				classes: ['toast success'],
+			});
+		} catch {
+			toast.pop(updatingToast);
+			toast.push('Round updating failed.', {
+				classes: ['toast failure'],
+			});
+		} finally {
+			updating = false;
+		}
 	}
 </script>
 

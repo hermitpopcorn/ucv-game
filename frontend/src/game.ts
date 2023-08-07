@@ -11,8 +11,18 @@ import type { Choice, ChoiceMap, GameState, Player, Round, WebSocketMessage } fr
 
 const awaitResponseStack: Map<string, () => void> = new Map();
 
-export function pushResponseStack(id: string, callback: () => void) {
+export function pushResponseStack(id: string, callback: () => void, timeoutCallback?: () => void) {
 	awaitResponseStack.set(id, callback);
+
+	if (timeoutCallback) {
+		setTimeout(() => {
+			if (!awaitResponseStack.get(id)) {
+				return;
+			}
+
+			timeoutCallback();
+		}, 5000);
+	}
 }
 
 function resolveResponseStack(id: string) {

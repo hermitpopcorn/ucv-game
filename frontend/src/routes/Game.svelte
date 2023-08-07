@@ -39,22 +39,33 @@
 		voteFixed = true;
 	});
 
+	let working = false;
 	async function finalizeVote(e: CustomEvent) {
-		if (voteFixed) {
+		if (voteFixed || working) {
 			return;
 		}
+		working = true;
+
+		const updatingToast = toast.push('Sending choice to server...', { initial: 0 });
 
 		let selected: 'a' | 'b' = e.detail;
 		try {
 			await setChoice(selected);
+			toast.pop(updatingToast);
+			toast.push('Your vote has been sent.', {
+				classes: ['toast success'],
+				duration: 1500,
+			});
+			voteFixed = true;
+			voteSelected = selected;
+			working = false;
 		} catch {
 			toast.push('Failed to send vote data to server.', {
 				classes: ['toast failure'],
 			});
+			working = false;
 			return;
 		}
-		voteFixed = true;
-		voteSelected = selected;
 	}
 </script>
 

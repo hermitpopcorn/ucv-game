@@ -3,7 +3,6 @@ import { getWebsocketConnection, pushResponseStack } from '$base/game';
 import { organizer as organizerStore } from '$base/stores';
 
 import type { Choice, Organizer, Player, Round } from './types';
-import { toast } from '@zerodevx/svelte-toast';
 
 export function setOrganizer(organizer: Organizer) {
 	organizerStore.set(organizer);
@@ -26,9 +25,7 @@ export function login(password: string): Promise<void> {
 }
 
 export function updateRound(round: Round): Promise<void> {
-	const updatingToast = toast.push('Updating round data...', { initial: 0 });
-
-	return new Promise((resolve) => {
+	return new Promise((resolve, reject) => {
 		const socket = getWebsocketConnection();
 		const responseId = generateUuid();
 		socket.send(
@@ -39,21 +36,12 @@ export function updateRound(round: Round): Promise<void> {
 			}),
 		);
 
-		pushResponseStack(responseId, () => {
-			toast.pop(updatingToast);
-			toast.push('Round updated.', {
-				classes: ['toast success'],
-			});
-
-			resolve();
-		});
+		pushResponseStack(responseId, resolve, reject);
 	});
 }
 
 export function togglePlayerCanVote(player: Player, newCanVoteStatus: boolean): Promise<void> {
-	const updatingToast = toast.push('Toggling ability to vote...', { initial: 0 });
-
-	return new Promise((resolve) => {
+	return new Promise((resolve, reject) => {
 		const socket = getWebsocketConnection();
 		const responseId = generateUuid();
 		socket.send(
@@ -67,21 +55,12 @@ export function togglePlayerCanVote(player: Player, newCanVoteStatus: boolean): 
 			}),
 		);
 
-		pushResponseStack(responseId, () => {
-			toast.pop(updatingToast);
-			toast.push('Player updated.', {
-				classes: ['toast success'],
-			});
-
-			resolve();
-		});
+		pushResponseStack(responseId, resolve, reject);
 	});
 }
 
 export function toggleVoteIsLie(choice: Choice, newLieStatus: boolean): Promise<void> {
-	const updatingToast = toast.push('Toggling lie status...', { initial: 0 });
-
-	return new Promise((resolve) => {
+	return new Promise((resolve, reject) => {
 		const socket = getWebsocketConnection();
 		const responseId = generateUuid();
 		socket.send(
@@ -95,25 +74,17 @@ export function toggleVoteIsLie(choice: Choice, newLieStatus: boolean): Promise<
 			}),
 		);
 
-		pushResponseStack(responseId, () => {
-			toast.pop(updatingToast);
-			toast.push('Lie status updated.', {
-				classes: ['toast success'],
-			});
-
-			resolve();
-		});
+		pushResponseStack(responseId, resolve, reject);
 	});
 }
 
 export function changePlayerPoint(player: Player, amount: number): Promise<void> {
-	const updatingToast = toast.push('Updating points...', { initial: 0 });
 	let points = (player.points ?? 0) + amount;
 	if (points < 0) {
 		points = 0;
 	}
 
-	return new Promise((resolve) => {
+	return new Promise((resolve, reject) => {
 		const socket = getWebsocketConnection();
 		const responseId = generateUuid();
 		socket.send(
@@ -127,13 +98,6 @@ export function changePlayerPoint(player: Player, amount: number): Promise<void>
 			}),
 		);
 
-		pushResponseStack(responseId, () => {
-			toast.pop(updatingToast);
-			toast.push('Points updated.', {
-				classes: ['toast success'],
-			});
-
-			resolve();
-		});
+		pushResponseStack(responseId, resolve, reject);
 	});
 }

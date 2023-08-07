@@ -2,6 +2,7 @@
 	import { changePlayerPoint, togglePlayerCanVote, toggleVoteIsLie } from '$base/organizer';
 	import { gameState } from '$base/stores';
 	import type { Choice, Player } from '$base/types';
+	import { toast } from '@zerodevx/svelte-toast';
 
 	type PlayerWithChoice = {
 		player: Player;
@@ -33,31 +34,74 @@
 		if (working) {
 			return;
 		}
-
 		working = true;
-		await togglePlayerCanVote(player, !player.canVote);
-		working = false;
+
+		const updatingToast = toast.push('Toggling ability to vote...', { initial: 0 });
+		try {
+			await togglePlayerCanVote(player, !player.canVote);
+			toast.pop(updatingToast);
+			toast.push('Player updated.', {
+				classes: ['toast success'],
+			});
+		} catch {
+			toast.pop(updatingToast);
+			toast.push('Failed to update player.', {
+				classes: ['toast failure'],
+			});
+		} finally {
+			working = false;
+		}
 	}
 
 	async function toggleLie(choice: Choice | undefined) {
 		if (working) {
 			return;
 		}
-
 		if (!choice) {
 			return;
 		}
-
 		working = true;
-		await toggleVoteIsLie(choice, !choice.lie);
-		working = false;
+
+		const updatingToast = toast.push('Toggling lie status...', { initial: 0 });
+
+		try {
+			await toggleVoteIsLie(choice, !choice.lie);
+			toast.pop(updatingToast);
+			toast.push('Vote updated.', {
+				classes: ['toast success'],
+			});
+		} catch {
+			toast.pop(updatingToast);
+			toast.push('Failed to update vote.', {
+				classes: ['toast success'],
+			});
+		} finally {
+			working = false;
+		}
 	}
 
 	let pointChangeAmount = 1;
 	async function changePoint(player: Player, point: number) {
+		if (working) {
+			return;
+		}
 		working = true;
-		await changePlayerPoint(player, point);
-		working = false;
+
+		const updatingToast = toast.push('Updating points...', { initial: 0 });
+		try {
+			await changePlayerPoint(player, point);
+			toast.pop(updatingToast);
+			toast.push('Player points updated.', {
+				classes: ['toast success'],
+			});
+		} catch {
+			toast.pop(updatingToast);
+			toast.push('Failed to update player points.', {
+				classes: ['toast failure'],
+			});
+		} finally {
+			working = false;
+		}
 	}
 </script>
 

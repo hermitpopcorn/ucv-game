@@ -36,7 +36,7 @@ export function login(name: string): Promise<void> {
 }
 
 export function setChoice(choiceOption: string): Promise<void> {
-	return new Promise((resolve) => {
+	return new Promise((resolve, reject) => {
 		const socket = getWebsocketConnection();
 		const responseId = generateUuid();
 		socket.send(
@@ -47,6 +47,6 @@ export function setChoice(choiceOption: string): Promise<void> {
 			}),
 		);
 
-		pushResponseStack(responseId, resolve);
+		pushResponseStack(responseId, resolve, reject);
 	});
 }
