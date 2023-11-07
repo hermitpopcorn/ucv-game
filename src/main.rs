@@ -18,7 +18,7 @@ mod database;
 mod gamemaster;
 mod postmaster;
 
-#[tokio::main]
+#[tokio::main(flavor = "multi_thread", worker_threads = 8)]
 async fn main() {
 	// Setup logger
 	env_logger::Builder::from_env(Env::default().default_filter_or("debug")).init();
